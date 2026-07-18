@@ -1,0 +1,2 @@
+Defaults:codex timestamp_timeout=0,pam_service=codex-authority
+codex ALL=(ALL:ALL) ALL

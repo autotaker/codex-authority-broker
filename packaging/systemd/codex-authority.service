@@ -1,0 +1,12 @@
+[Unit]
+Description=Codex authority lease broker
+[Service]
+ExecStart=/usr/sbin/authorityd -config /etc/codex-authority/config.json
+User=root
+RuntimeDirectory=codex-authority
+RuntimeDirectoryMode=0750
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/run/codex-authority /var/lib/codex-authority
+[Install]
+WantedBy=multi-user.target

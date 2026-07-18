@@ -1,0 +1,6 @@
+.PHONY: check test
+check: test
+	go vet ./...
+	$(MAKE) -C pam check
+test:
+	go test ./...
