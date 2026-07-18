@@ -19,6 +19,13 @@ var (
 	ErrNoChallenge = errors.New("lease: readiness challenge is not open")
 	// ErrInvalidChallenge means the supplied challenge is not current.
 	ErrInvalidChallenge = errors.New("lease: challenge is not current")
+	// ErrInvalidTOTP means the submitted value did not verify.
+	ErrInvalidTOTP = errors.New("lease: invalid totp")
+	// ErrTOTPReplay means a verified counter was already consumed or is below
+	// the process boot replay floor.
+	ErrTOTPReplay = errors.New("lease: totp replay")
+	// ErrTOTPRateLimit means this challenge has exceeded its attempt budget.
+	ErrTOTPRateLimit = errors.New("lease: totp rate limit")
 )
 
 // Clock supplies the time used for all state transitions.
@@ -50,6 +57,11 @@ type State struct {
 	challengeEnd time.Time
 	lease        Lease
 	leaseEnd     time.Time
+
+	bootReplayFloor   int64
+	acceptedWatermark int64
+	attemptStart      time.Time
+	attemptCount      int
 }
 
 type systemClock struct{}
@@ -63,7 +75,12 @@ func New(clock Clock) *State {
 	if clock == nil {
 		clock = systemClock{}
 	}
-	return &State{clock: clock}
+	now := clock.Now()
+	floor := int64(0)
+	if counter, ok := totpCounter(now); ok {
+		floor = counter
+	}
+	return &State{clock: clock, bootReplayFloor: floor}
 }
 
 // BeginReadiness opens an absolute 300-second challenge without creating a
@@ -84,6 +101,8 @@ func (s *State) BeginReadiness() (Challenge, error) {
 	s.nextSequence++
 	s.challenge = Challenge{owner: s, sequence: s.nextSequence}
 	s.challengeEnd = now.Add(challengeDuration)
+	s.attemptStart = time.Time{}
+	s.attemptCount = 0
 	return s.challenge, nil
 }
 
@@ -105,12 +124,56 @@ func (s *State) Activate(challenge Challenge) (Lease, error) {
 		return Lease{}, ErrInvalidChallenge
 	}
 
-	s.nextSequence++
-	s.lease = Lease{owner: s, sequence: s.nextSequence}
-	s.leaseEnd = now.Add(leaseDuration)
-	s.challenge = Challenge{}
-	s.challengeEnd = time.Time{}
-	return s.lease, nil
+	return s.activateLocked(now)
+}
+
+// VerifyAndActivate atomically verifies one OTP and consumes the challenge.
+func (s *State) VerifyAndActivate(challenge Challenge, code string, verifier *TOTPVerifier) (Lease, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	now := s.clock.Now()
+	s.expire(now)
+	if s.lease.sequence != 0 {
+		return Lease{}, ErrLeaseActive
+	}
+	if s.challenge.sequence == 0 {
+		return Lease{}, ErrNoChallenge
+	}
+	if challenge.owner != s || challenge.sequence != s.challenge.sequence {
+		return Lease{}, ErrInvalidChallenge
+	}
+	if !s.recordAttempt(now) {
+		return Lease{}, ErrTOTPRateLimit
+	}
+	if verifier == nil || !validTOTPInput(code) {
+		return Lease{}, ErrInvalidTOTP
+	}
+	counter, ok := totpCounter(now)
+	if !ok {
+		return Lease{}, ErrInvalidTOTP
+	}
+	if counter <= s.bootReplayFloor {
+		return Lease{}, ErrTOTPReplay
+	}
+	for offset := int64(-1); offset <= 1; offset++ {
+		candidate := counter + offset
+		if offset < 0 && counter == 0 {
+			continue
+		}
+		if verifier.matches(candidate, code) {
+			floor := s.bootReplayFloor
+			if s.acceptedWatermark > floor {
+				floor = s.acceptedWatermark
+			}
+			if candidate <= floor {
+				return Lease{}, ErrTOTPReplay
+			}
+			s.acceptedWatermark = candidate
+			return s.activateLocked(now)
+		}
+	}
+	return Lease{}, ErrInvalidTOTP
 }
 
 // Active reports whether the lease is strictly before its immutable deadline.
@@ -126,9 +189,31 @@ func (s *State) expire(now time.Time) {
 	if s.challenge.sequence != 0 && !now.Before(s.challengeEnd) {
 		s.challenge = Challenge{}
 		s.challengeEnd = time.Time{}
+		s.attemptStart = time.Time{}
+		s.attemptCount = 0
 	}
 	if s.lease.sequence != 0 && !now.Before(s.leaseEnd) {
 		s.lease = Lease{}
 		s.leaseEnd = time.Time{}
 	}
+}
+
+func (s *State) activateLocked(now time.Time) (Lease, error) {
+	s.nextSequence++
+	s.lease = Lease{owner: s, sequence: s.nextSequence}
+	s.leaseEnd = now.Add(leaseDuration)
+	s.challenge = Challenge{}
+	s.challengeEnd = time.Time{}
+	s.attemptStart = time.Time{}
+	s.attemptCount = 0
+	return s.lease, nil
+}
+
+func (s *State) recordAttempt(now time.Time) bool {
+	if s.attemptStart.IsZero() || !now.Before(s.attemptStart.Add(totpRateWindow)) {
+		s.attemptStart = now
+		s.attemptCount = 0
+	}
+	s.attemptCount++
+	return s.attemptCount <= totpRateLimit
 }
