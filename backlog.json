@@ -1,0 +1,160 @@
+{
+  "schema_version": 5,
+  "generated_for": "TASK-0002",
+  "planning_basis": {
+    "observed_pr": "PR #1 / TASK-0001 remains revision-1 FAIL historical evidence",
+    "strategy": "Rolling-wave planning: only detailed tasks are executable; reserves are non-executable.",
+    "production_loc_definition": "Count nonblank, non-comment executable-source lines in shipped, installed, or runtime/installation source: non-test .go and shipped .py, .sh, or .c. Excludes tests, planning/review documents, task/operator docs, workflows, declarative systemd/PAM/sudoers configuration, generated, and vendor."
+  },
+  "tasks": [
+    {
+      "id": "TASK-0001",
+      "title": "core lease state, readiness, and absolute expiry",
+      "status": "planned",
+      "executable": true,
+      "depends_on": [],
+      "estimated_delivery_minutes": 30,
+      "cumulative_production_loc_ceiling": 250
+    },
+    {
+      "id": "TASK-0003",
+      "title": "TOTP replay, rate limits, and concurrency",
+      "status": "planned",
+      "executable": true,
+      "depends_on": [
+        "TASK-0001"
+      ],
+      "estimated_delivery_minutes": 30,
+      "cumulative_production_loc_ceiling": 430
+    },
+    {
+      "id": "TASK-0004",
+      "title": "versioned SO_PEERCRED IPC",
+      "status": "planned",
+      "executable": true,
+      "depends_on": [
+        "TASK-0003"
+      ],
+      "estimated_delivery_minutes": 30,
+      "cumulative_production_loc_ceiling": 650
+    },
+    {
+      "id": "TASK-0005",
+      "title": "Codex CLI, socket access, and redaction",
+      "status": "planned",
+      "executable": true,
+      "depends_on": [
+        "TASK-0004"
+      ],
+      "estimated_delivery_minutes": 30,
+      "cumulative_production_loc_ceiling": 820
+    },
+    {
+      "id": "TASK-0006",
+      "title": "measurement and rolling-wave replanning gate",
+      "status": "planned",
+      "executable": true,
+      "depends_on": [
+        "TASK-0005"
+      ],
+      "estimated_delivery_minutes": 30,
+      "cumulative_production_loc_ceiling": 820,
+      "production_loc_added": 0
+    }
+  ],
+  "future_milestones": [
+    {
+      "id": "MILESTONE-sudo",
+      "title": "sudo reserve",
+      "executable": false,
+      "cumulative_production_loc_reserve": 950,
+      "description": "Reserve only: future per-sudo pam_exec live check/no cache work.",
+      "eligible_for": "ineligible for PLAN/DEV/branch/PR until TASK-0006 converts it, with at most two other next-wave milestones, into a detailed contract."
+    },
+    {
+      "id": "MILESTONE-push",
+      "title": "push reserve",
+      "executable": false,
+      "cumulative_production_loc_reserve": 1400,
+      "description": "Reserve only: future local validation, GitHub App token custody, and system-Git non-force push work.",
+      "eligible_for": "ineligible for PLAN/DEV/branch/PR until TASK-0006 converts only the next 2-3 items into detailed contracts."
+    },
+    {
+      "id": "MILESTONE-audit-release",
+      "title": "audit and attested release reserve",
+      "executable": false,
+      "cumulative_production_loc_reserve": 1500,
+      "description": "Reserve only: future minimal audit, declarative bundle, and source-free attested release work.",
+      "eligible_for": "ineligible for PLAN/DEV/branch/PR until TASK-0006 converts only the next 2-3 items into detailed contracts."
+    },
+    {
+      "id": "MILESTONE-clean-canary",
+      "title": "clean canary reserve",
+      "executable": false,
+      "cumulative_production_loc_reserve": 1500,
+      "production_loc_added": 0,
+      "description": "Reserve only: future clean artifact canary and rollback evidence.",
+      "eligible_for": "ineligible for PLAN/DEV/branch/PR until TASK-0006 converts only the next 2-3 items into detailed contracts."
+    }
+  ],
+  "measurement_contract": {
+    "required_fields": [
+      "planned_production_sloc",
+      "actual_production_sloc",
+      "test_loc",
+      "plan_minutes",
+      "dev_minutes",
+      "review_minutes",
+      "qa_minutes",
+      "ci_push_merge_minutes",
+      "retries",
+      "failure_classifications"
+    ],
+    "rules": {
+      "preflight": "excluded from cycle timing; a preflight failure means not-started",
+      "contingency": "apply 20% time contingency",
+      "evidence": "derive next-wave sizing from observed completed cycles",
+      "sparse_evidence": "do not assume fixed SLOC throughput when evidence is sparse",
+      "conversion": "convert only the next 2-3 future milestones into detailed contracts",
+      "remeasurement": "insert the next measurement gate after those 2-3 tasks"
+    }
+  },
+  "delivery_guardrails": {
+    "production_sloc_counting": "Count nonblank, non-comment executable-source lines only, within the production-LOC file definition.",
+    "no_compression": "LOC caps never authorize semicolon or one-line packing, collapsed error handling, cryptic names, removal of security comments, or combining functions solely to reduce LOC. REVIEW rejects these patterns. gofmt and normal idiomatic structure are mandatory.",
+    "projected_cap_trigger": "At projected use above 90% of a task cumulative ceiling, re-estimate before DEV.",
+    "candidate_cap_trigger": "If a candidate exceeds its ceiling, shed only in the listed order, rerun PLAN and QA before DEV continues, and never compress implementation.",
+    "mandatory_v1": "Never shed readiness; TOTP replay, rate, or absolute lease controls; SO_PEERCRED fail-closed IPC; per-sudo pam_exec live check/no cache; secret non-disclosure from argv/log; source-free attested artifact; or external-trace-compatible minimal audit. If these mandatory v1 requirements still exceed 1500 production SLOC, stop as a requirement gap.",
+    "ordered_feature_shedding": [
+      "automated canary executable; retain manual runbook/evidence",
+      "rich status/JSON UX; retain activate and immediate revoke",
+      "rich audit schema/correlation; retain minimal external-trace correlation ID, actor, scope, result, expiry",
+      "precomputed pack-size/history diagnostics; retain exact repo/ref/clean tree and normal non-force rejection",
+      "explicit remote-OID prefetch/race diagnostics; rely on standard non-force git rejection and generic failure",
+      "automated installer/rollback executable; retain declarative units and manual verified install/rollback",
+      "GitHub push capability moves to v2, leaving TOTP full-sudo authority as v1"
+    ]
+  },
+  "acceptance_checks": [
+    "Only tasks are eligible for PLAN/DEV/branch/PR.",
+    "Future milestones are ineligible until TASK-0006 converts only the next 2-3 into detailed contracts.",
+    "TASK-0006 records every listed cycle metric, excludes preflight, applies 20% contingency, and does not assume fixed SLOC throughput when sparse.",
+    "REVIEW verifies non-compressed idiomatic production source and gofmt.",
+    "Candidate over-cap follows exact shedding and re-approved PLAN/QA; mandatory v1 over 1500 is a requirement gap."
+  ],
+  "human_gate_evidence": {
+    "review_checklist": "Record inspection of the task acceptance evidence, production-SLOC count against its ceiling, and no-compression/guardrail compliance.",
+    "qa_checklist": "Independently repeat the focused validation and SLOC count, compare the result with the task acceptance and dependency boundary, and record PASS or FAIL evidence."
+  },
+  "acceptance_lineage": {
+    "readiness_creates_only_absolute_challenge": "TASK-0001",
+    "absolute_lease_expiry_and_restart_fail_closed": "TASK-0001",
+    "totp_valid_unused_activation_once": "TASK-0003",
+    "totp_replay_rate_limit_and_concurrency_denial": "TASK-0003",
+    "ipc_version_size_and_malformed_denial": "TASK-0004",
+    "ipc_so_peercred_identity_and_fail_closed": "TASK-0004",
+    "codex_cli_socket_reachability": "TASK-0005",
+    "otp_secret_non_disclosure_at_cli_boundary": "TASK-0005",
+    "rolling_wave_measurement_and_replanning": "TASK-0006"
+  }
+}
