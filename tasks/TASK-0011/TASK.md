@@ -13,20 +13,20 @@
   "status": "planned",
   "executable": true,
   "depends_on": ["TASK-0010"],
-  "expected_production_sloc": 220,
-  "expected_cumulative_production_sloc": 1311,
+  "expected_production_sloc": 153,
+  "expected_cumulative_production_sloc": 1490,
   "target_cumulative_cap": 1500,
-  "projected_cap_trigger_sloc": 1350,
+  "projected_cap_trigger_sloc": 1495,
   "hard_cumulative_guard": 1650,
-  "production_paths": ["cmd/codex-authority-push/main.go", "internal/ipc/protocol.go", "internal/push/custody.go", "internal/push/system_git.go", "internal/backend/push_registration.go"],
-  "test_paths": ["cmd/codex-authority-push/main_test.go", "internal/ipc/protocol_test.go", "internal/push/custody_test.go", "internal/push/system_git_test.go", "internal/backend/push_registration_test.go"],
+  "production_paths": ["cmd/codex-authority-push/main.go", "cmd/codex-authority-broker/main.go", "internal/ipc/protocol.go", "internal/push/custody.go", "internal/push/system_git.go", "internal/backend/push_registration.go"],
+  "test_paths": ["cmd/codex-authority-push/main_test.go", "cmd/codex-authority-broker/main_test.go", "internal/ipc/protocol_test.go", "internal/push/custody_test.go", "internal/push/system_git_test.go", "internal/backend/push_registration_test.go"],
   "entrypoint": "cmd/codex-authority-push/main.go",
-  "fixture_elevation_needs": "TASK-0007 handler seam and dedicated caller UID, local bare remote, fake short-lived GitHub App token provider, system-Git binary, credential-capture sentinel, live-lease fixture, no network and no elevation.",
+  "fixture_elevation_needs": "TASK-0013 instance handler seam, TASK-0014 explicit broker construction call, and dedicated caller UID; local bare remote, fake short-lived GitHub App token provider, system-Git binary, credential-capture sentinel, live-lease fixture, no network and no elevation.",
   "lap_1": "After TASK-0010 PASS+merge and approved plans, implement the bounded caller, OperationPush/PushRequest admission, backend registration and UID/live-lease/policy gates, in-memory token custody, and one system-Git single-ref non-force path; run go test ./cmd/codex-authority ./cmd/codex-authority-broker ./cmd/codex-authority-push ./internal/ipc ./internal/push ./internal/backend.",
   "lap_2": "Independent REVIEW runs the focused suite, malformed/unknown-operation and credential-capture mutations, then repository-native full check; QA proves exactly one authorized push handler with correct UID, live lease, and TASK-0010 policy, and denies old client, wrong UID, malformed/expired authority, leak, force, and ambiguity cases before custody/Git; main owns Git.",
-  "exclusions": ["changes to cmd/codex-authority/main.go", "changes to cmd/codex-authority-broker/main.go", "generic IPC commands", "arbitrary refspec", "remote-OID prefetch", "force/tag/delete push", "sudo", "audit", "release", "installer", "canary"],
-  "split_stop_rule": "Stop before DEV if caller schema cannot stay bounded, SO_PEERCRED cannot distinguish configured UID, token injection leaks through a named channel, system Git cannot be captured deterministically, the five-unit forecast exceeds 1350, or remote OID/race diagnostics are required; shed optional diagnostics in order or split without weakening authorization, custody, schema, or non-force behavior.",
-  "measurement_lineage": "Forecast allocation is 35 caller + 45 protocol/schema + 40 registration/gates + 55 custody + 45 system-Git/redaction = 220, not throughput. Record stage pairs, active/wait, retries, raw/effective classifications, source IDs, null reasons, preflight exclusion, and time-only contingency.",
+  "exclusions": ["changes to cmd/codex-authority/main.go", "broker main changes beyond one explicit fixed push registration call", "broker ready/otp, seed, signal, or socket lifecycle changes", "generic IPC commands", "arbitrary refspec", "remote-OID prefetch", "force/tag/delete push", "sudo", "audit", "release", "installer", "canary"],
+  "split_stop_rule": "Stop before DEV if caller schema cannot stay bounded, the explicit broker registration call cannot remain isolated, SO_PEERCRED cannot distinguish configured UID, token injection leaks through a named channel, system Git cannot be captured deterministically, the forecast exceeds post-reestimate stop 1495, or the retained core cannot fit readably within 153; never weaken authorization, custody, schema, redaction, or non-force behavior.",
+  "measurement_lineage": "Forecast allocation is 16 caller + 4 broker call + 26 protocol/schema + 36 registration/gates + 33 custody + 38 system-Git/redaction = 153, not throughput. Removed scope is convenience UX, generic frameworks, cache/retry/telemetry, and rich diagnostics only. Record stage pairs, active/wait, retries, raw/effective classifications, source IDs, null reasons, preflight exclusion, and time-only contingency.",
   "later_reserve_eligibility": "Later audit/attestation/manual-canary reserve remains ineligible until TASK-0012 PASS+merge.",
   "contract_path": "tasks/TASK-0011/TASK.md"
 }
@@ -39,9 +39,11 @@ This Task owns the only supported local restricted-push caller,
 `PushRequest` admission in `internal/ipc/protocol.go`; bounded in-memory token
 custody; one system-Git single-ref non-force path; and
 `internal/backend/push_registration.go` attaching the route through the
-already-merged TASK-0007 handler seam. Tests are exactly the five named test
-paths. Neither `cmd/codex-authority/main.go` nor
-`cmd/codex-authority-broker/main.go` changes.
+already-merged TASK-0013 handler seam and TASK-0014 daemon. Tests are exactly the six named test
+paths. `cmd/codex-authority/main.go` remains unchanged. TASK-0011 may change
+the broker main and its test only to construct push-specific dependencies and
+explicitly call the fixed registration function once; no `init`, mutable
+global registry, discovery, or other daemon lifecycle change is allowed.
 
 The caller accepts only configured repository identity and one permitted local
 source/destination ref intent. It exposes no token, force, tag, delete,
@@ -52,7 +54,7 @@ duplicate-equivalent, oversized, malformed, force/tag/delete/multiple-ref, or
 noncanonical fields deny before backend dispatch.
 
 The protocol admits exactly `ready`, `otp`, and `push`. Backend admission
-requires the dedicated UID from TASK-0007 root-owned configuration, verified by
+requires the dedicated UID from TASK-0014 root-owned configuration, verified by
 the existing fail-closed `SO_PEERCRED` boundary; a live lease; and TASK-0010
 policy PASS. Wrong UID, absent/expired lease, invalid policy/schema,
 unavailable registration, unknown operation, or malformed payload denies before
@@ -61,7 +63,7 @@ logs, output, errors, and credential-helper storage.
 
 ## Preflight and two-Lap delivery
 
-Preflight requires merged TASK-0010, stable TASK-0007 handler seam and caller
+Preflight requires merged TASK-0010, stable TASK-0013 handler seam, TASK-0014 daemon, and caller
 UID, local bare remote, fake short-lived GitHub App token provider, system-Git
 binary, credential-capture sentinel, live-lease fixture, no network, and no
 elevation. A missing prerequisite is `not_started` and excluded from timing.
@@ -90,25 +92,26 @@ jq -e . backlog.json >/dev/null
 
 ## Measurement, allocation, and stop rule
 
-The forecast is +220 production SLOC and cumulative 1311; target cap 1500,
-90%-trigger 1350, hard guard 1650. The boundary allocation is 35 caller + 45
-protocol/schema + 40 registration/gates + 55 custody + 45 system-Git/redaction
-= 220; it is not a throughput estimate. Record paired stage timing,
+The forecast is +153 production SLOC and cumulative 1490; post-reestimate stop
+1495, target cap 1500, hard guard 1650. The readable retained-core allocation is
+16 caller + 4 broker call + 26 protocol/schema + 36 registration/gates + 33
+custody + 38 system-Git/redaction = 153; it is not a throughput estimate. The
+removed scope is only convenience UX, generic frameworks, caching/retry/
+telemetry, and rich diagnostics. Record paired stage timing,
 active/wait, retries, raw/effective classifications/source IDs, null reasons,
 preflight exclusion, and time-only 20% contingency.
 
 Stop before DEV if the caller cannot stay within one bounded schema,
 `SO_PEERCRED` cannot distinguish the configured UID, token injection cannot
 keep secrets out of every named channel, system Git cannot be captured
-deterministically, the five-unit forecast exceeds 1350, or remote OID/race
-diagnostics are required. Shed optional diagnostics only in the approved order
-or split; never weaken caller authorization, schema admission, custody, or
+deterministically, the forecast exceeds 1495, or the retained core cannot fit
+readably within 153. Stop and replan rather than compress; never weaken caller authorization, schema admission, custody, or
 non-force-only behavior. Candidate target/hard overflow stops safely.
 
 ## Exclusions and gate
 
-This Task excludes changes to the existing ready/OTP client or broker
-entrypoint, generic IPC commands, arbitrary refspecs, remote-OID prefetch,
+This Task excludes changes to the existing ready/OTP client and broker changes
+beyond the single explicit fixed push registration call; generic IPC commands, arbitrary refspecs, remote-OID prefetch,
 force/tag/delete pushes, sudo, audit, release, installer, and canary work.
 
 Independent REVIEW PASS and QA PASS are required; a FAIL returns to its

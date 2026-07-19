@@ -14,19 +14,19 @@
   "executable": true,
   "depends_on": ["TASK-0008"],
   "expected_production_sloc": 0,
-  "expected_cumulative_production_sloc": 961,
-  "target_cumulative_cap": 1100,
-  "projected_cap_trigger_sloc": 990,
-  "hard_cumulative_guard": 1250,
+  "expected_cumulative_production_sloc": 1207,
+  "target_cumulative_cap": 1300,
+  "projected_cap_trigger_sloc": 1250,
+  "hard_cumulative_guard": 1400,
   "production_paths": [],
   "test_paths": ["tasks/TASK-0009/MEASUREMENT.md"],
   "entrypoint": null,
   "fixture_elevation_needs": "Read-only frozen canonical JSONL snapshot; no elevation, network, product fixture, or operational-log write.",
-  "lap_1": "After TASK-0007 and TASK-0008 merge, freeze the completed-event snapshot and regenerate provenance-complete historical plus new-wave SLOC/test/stage/active/wait/retry/raw/effective classification evidence, applying ceil(observed non-preflight time * 1.20) only to observable time.",
+  "lap_1": "After TASK-0013, TASK-0014, and TASK-0008 merge, freeze the completed-event snapshot and regenerate provenance-complete historical plus new-wave SLOC/test/stage/active/wait/retry/raw/effective classification evidence, applying ceil(observed non-preflight time * 1.20) only to observable time.",
   "lap_2": "Independent REVIEW and QA each run canonical parse/unique-ID/correction-edge checks, independently regenerate measurement and cap arithmetic, and run the repository-native full Go/format/diff checks; main owns Git. TASK-0010 speculative planning is invalidated if evidence changes its boundary.",
   "exclusions": ["all product/test implementation", "audit", "attestation", "release", "installer", "canary", "editing canonical log"],
-  "split_stop_rule": "Stop on missing or contradictory canonical evidence, non-reproducible arithmetic, actual cumulative above 1100, or inability to independently regenerate in Lap 2; classify before retry and do not bypass TASK-0010.",
-  "measurement_lineage": "Use exactly four completed canonical task IDs, preserve null with reasons, validate every correction target earlier in file order and same task/lap with smaller sequence, retain raw source IDs and superseded_by, and derive effective values only after validation.",
+  "split_stop_rule": "Stop on missing or contradictory canonical evidence, non-reproducible arithmetic, actual cumulative above target 1300, or inability to independently regenerate in Lap 2; classify before retry and do not bypass TASK-0010.",
+  "measurement_lineage": "Include the terminated TASK-0007 raw evidence and completed replacement TASK-0013/TASK-0014 lineage, preserve null with reasons, validate every correction target earlier in file order and same task/lap with smaller sequence, retain raw source IDs and superseded_by, and derive effective values only after validation.",
   "later_reserve_eligibility": "Audit/attestation/manual-canary reserve remains non-executable until TASK-0012 PASS+merge; no converted milestone remains simultaneously reserved and executable.",
   "contract_path": "tasks/TASK-0009/TASK.md"
 }
@@ -35,7 +35,7 @@
 ## Purpose and evidence boundary
 
 This is a zero-production-SLOC measurement and replanning gate after exactly
-the two production Tasks TASK-0007 and TASK-0008. It measures the immutable
+the two replacement production Tasks TASK-0013/TASK-0014 and TASK-0008. It measures the immutable
 historical baseline and the new completed records, then allows only the next
 bounded contract (TASK-0010) to proceed after independent REVIEW and QA. It
 does not implement product behavior and does not edit the canonical log.
@@ -48,7 +48,7 @@ Corrections are not additional tasks.
 
 ## Preflight and two-Lap delivery
 
-Preflight verifies merged TASK-0007/TASK-0008, freezes the completed-event
+Preflight verifies merged TASK-0013/TASK-0014/TASK-0008, freezes the completed-event
 snapshot, and confirms that the source and worktree are readable. A preflight
 failure is `not_started`, excluded from cycle/stage timing, and never replaced
 with a synthetic zero.
@@ -116,8 +116,8 @@ jq -e . backlog.json >/dev/null
   are separate and correction-provenanced.
 - No fixed SLOC throughput, LOC velocity, average, or imputed timing sizes the
   next contract.
-- The gate adds exactly 0 production SLOC; cumulative measured production
-  remains 961 for the planned wave.
+- The gate adds exactly 0 production SLOC; forecast cumulative production is
+  1207 before independent measurement reconciliation.
 
 This Task excludes all product/test implementation, audit, attestation,
 release, installer, canary, and detailed contracts beyond the next bounded
@@ -126,9 +126,9 @@ QA output and is not one of TASK-0006's seven DEV outputs.
 
 ## Measurement, caps, and stop rule
 
-The forecast is +0 production SLOC and cumulative 961; target cap 1100,
-90%-trigger 990, hard guard 1250. Stop on missing or contradictory canonical
-evidence, non-reproducible arithmetic, actual cumulative above 1100, or
+The forecast is +0 production SLOC and cumulative 1207; post-reestimate stop
+1250, target cap 1300, hard guard 1400. Stop on missing or contradictory canonical
+evidence, non-reproducible arithmetic, actual cumulative above 1300, or
 inability to independently regenerate in Lap 2. Classify before retry and do
 not bypass TASK-0010. Record active/wait and retries without double-counting
 snapshots, and preserve null with an explicit reason.
