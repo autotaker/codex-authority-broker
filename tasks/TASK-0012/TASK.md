@@ -4,8 +4,9 @@
 PASS), with the post-TASK-0009 measurement/replan included in that
 predecessor's evidence.
 
-**Status:** in progress as a zero-product-SLOC evidence gate; no push
-implementation or later milestone is enabled.
+**Status:** completed after independent REVIEW and QA PASS; this process-only
+candidate adds zero product SLOC and enables no push implementation or later
+milestone DEV.
 
 ## Replanned contract metadata
 
@@ -13,7 +14,7 @@ implementation or later milestone is enabled.
 {
   "id": "TASK-0012",
   "title": "final zero-SLOC measurement and later-reserve gate",
-  "status": "in_progress",
+  "status": "completed",
   "executable": true,
   "depends_on": ["TASK-0017"],
   "baseline_production_sloc": 1407,

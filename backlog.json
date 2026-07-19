@@ -35,7 +35,7 @@
     "owner_lineage": [
       "TASK-0009 measurement PASS+merge and user-confirmed v1 push drop",
       "TASK-0017 completed via PR #18: dedicated socket ownership and PAM peer identity handoff (actual Git delta +145; full-tree cumulative 1407)",
-      "TASK-0012 post-TASK-0017 zero-SLOC actual measurement gate (in progress)",
+      "TASK-0012 completed zero-SLOC actual measurement gate (1407 actual; independent REVIEW/QA PASS; merge represented by this candidate)",
       "MILESTONE-audit-attestation",
       "MILESTONE-manual-canary-rollback"
     ],
@@ -343,7 +343,7 @@
     {
       "id": "TASK-0012",
       "title": "final zero-SLOC measurement and later-reserve gate",
-      "status": "in_progress",
+      "status": "completed",
       "executable": true,
       "depends_on": ["TASK-0017"],
       "baseline_production_sloc": 1407,
