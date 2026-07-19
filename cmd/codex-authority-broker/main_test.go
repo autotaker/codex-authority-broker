@@ -3,21 +3,29 @@
 package main
 
 import (
+	"archive/tar"
 	"bytes"
+	"compress/gzip"
 	"context"
+	"crypto/sha256"
 	"encoding/base64"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
 	"net"
 	"os"
+	"os/exec"
 	"os/signal"
 	"path/filepath"
 	"reflect"
+	"regexp"
+	"sort"
 	"strings"
 	"sync"
 	"syscall"
 	"testing"
+	"time"
 
 	"github.com/autotaker/codex-authority-broker/internal/backend"
 	"github.com/autotaker/codex-authority-broker/internal/ipc"
@@ -30,6 +38,298 @@ type trackingReader struct {
 	err        error
 	closeErr   error
 	closeCount int
+}
+
+var releaseManifest = []string{
+	"SHA256SUMS",
+	"bin/codex-authority",
+	"bin/codex-authority-broker",
+	"bin/codex-authority-sudo",
+	"deploy/pam/codex-authority",
+	"deploy/sudo/codex-authority",
+	"deploy/systemd/codex-authority-broker.service",
+}
+
+func repositoryPath(parts ...string) string {
+	return filepath.Join(append([]string{"..", ".."}, parts...)...)
+}
+
+func TestReleaseWorkflowPinsPermissionsAndPayload(t *testing.T) {
+	workflow, err := os.ReadFile(repositoryPath(".github", "workflows", "release.yml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	text := string(workflow)
+	pins := []string{
+		"actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0",
+		"actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0",
+		"actions/attest@f7c74d28b9d84cb8768d0b8ca14a4bac6ef463e6 # v4.2.0",
+		"actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1",
+	}
+	for _, pin := range pins {
+		if strings.Count(text, pin) != 1 {
+			t.Fatalf("workflow pin missing or duplicated: %s", pin)
+		}
+	}
+	uses := regexp.MustCompile(`(?m)^\s*-?\s*uses:\s*([^\s]+)`).FindAllStringSubmatch(text, -1)
+	if len(uses) != len(pins) {
+		t.Fatalf("executable actions = %d", len(uses))
+	}
+	for _, match := range uses {
+		if !regexp.MustCompile(`^actions/[a-z0-9-]+@[0-9a-f]{40}$`).MatchString(match[1]) {
+			t.Fatalf("action is not an official full SHA: %s", match[1])
+		}
+	}
+	permissions := "permissions:\n  contents: read\n  attestations: write\n  id-token: write\n  artifact-metadata: write\n"
+	if strings.Count(text, permissions) != 1 || strings.Contains(text, "secrets.") {
+		t.Fatal("workflow permissions or secret boundary changed")
+	}
+	for _, required := range []string{
+		"CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -o staging/bin/codex-authority-broker ./cmd/codex-authority-broker",
+		"CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -o staging/bin/codex-authority ./cmd/codex-authority",
+		"CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -o staging/bin/codex-authority-sudo ./cmd/codex-authority-sudo",
+		"subject-path: codex-authority-linux-amd64.tar.gz",
+		"if-no-files-found: error",
+		"sha256sum -c SHA256SUMS",
+		"cache: false",
+		"workflow_dispatch:",
+		"branches: [main]",
+	} {
+		if strings.Count(text, required) != 1 {
+			t.Fatalf("workflow requirement missing or duplicated: %s", required)
+		}
+	}
+	if strings.Count(text, " go build ") != 3 || strings.Contains(text, "@v") {
+		t.Fatal("workflow target count or immutable pinning changed")
+	}
+	pam, err := os.ReadFile(repositoryPath("deploy", "pam", "codex-authority"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	wantPAM := "#%PAM-1.0\nauth required pam_exec.so quiet seteuid /usr/local/bin/codex-authority-sudo\naccount required pam_permit.so\n"
+	if string(pam) != wantPAM {
+		t.Fatal("declarative PAM input changed")
+	}
+	service, err := os.ReadFile(repositoryPath("deploy", "systemd", "codex-authority-broker.service"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, directive := range []string{"ExecStart=/usr/local/bin/codex-authority-broker", "User=root", "Group=root", "NoNewPrivileges=true", "ProtectSystem=strict", "ReadWritePaths=/run"} {
+		if strings.Count(string(service), directive) != 1 {
+			t.Fatalf("service directive missing or duplicated: %s", directive)
+		}
+	}
+}
+
+func writeReleaseFixture(t *testing.T, root string) map[string][]byte {
+	t.Helper()
+	payloads := make(map[string][]byte)
+	for _, name := range releaseManifest[1:] {
+		data := []byte("fixture:" + name + "\n")
+		path := filepath.Join(root, filepath.FromSlash(name))
+		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(path, data, 0o755); err != nil {
+			t.Fatal(err)
+		}
+		payloads[name] = data
+	}
+	var sums strings.Builder
+	for _, name := range releaseManifest[1:] {
+		digest := sha256.Sum256(payloads[name])
+		fmt.Fprintf(&sums, "%s  %s\n", hex.EncodeToString(digest[:]), name)
+	}
+	checksum := []byte(sums.String())
+	if err := os.WriteFile(filepath.Join(root, "SHA256SUMS"), checksum, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	payloads["SHA256SUMS"] = checksum
+	return payloads
+}
+
+func buildReleaseFixture(t *testing.T, epoch int64) ([]byte, map[string][]byte) {
+	t.Helper()
+	root := t.TempDir()
+	payloads := writeReleaseFixture(t, root)
+	archive := filepath.Join(t.TempDir(), "artifact.tar.gz")
+	arguments := []string{"--sort=name", "--format=gnu", fmt.Sprintf("--mtime=@%d", epoch), "--owner=0", "--group=0", "--numeric-owner", "-cf", "-", "-C", root}
+	arguments = append(arguments, releaseManifest...)
+	tarCommand := exec.Command("tar", arguments...)
+	gzipCommand := exec.Command("gzip", "-n")
+	pipe, err := tarCommand.StdoutPipe()
+	if err != nil {
+		t.Fatal(err)
+	}
+	gzipCommand.Stdin = pipe
+	output, err := os.Create(archive)
+	if err != nil {
+		t.Fatal(err)
+	}
+	gzipCommand.Stdout = output
+	if err := gzipCommand.Start(); err != nil {
+		t.Fatal(err)
+	}
+	if err := tarCommand.Run(); err != nil {
+		t.Fatal(err)
+	}
+	if err := gzipCommand.Wait(); err != nil {
+		t.Fatal(err)
+	}
+	if err := output.Close(); err != nil {
+		t.Fatal(err)
+	}
+	data, err := os.ReadFile(archive)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return data, payloads
+}
+
+func validateReleaseArchive(archive []byte, epoch int64) error {
+	gzipReader, err := gzip.NewReader(bytes.NewReader(archive))
+	if err != nil {
+		return err
+	}
+	defer gzipReader.Close()
+	reader := tar.NewReader(gzipReader)
+	var names []string
+	contents := make(map[string][]byte)
+	for {
+		header, nextErr := reader.Next()
+		if errors.Is(nextErr, io.EOF) {
+			break
+		}
+		if nextErr != nil {
+			return nextErr
+		}
+		if header.Typeflag != tar.TypeReg || header.Uid != 0 || header.Gid != 0 || header.ModTime.Unix() != epoch {
+			return errors.New("invalid archive member metadata")
+		}
+		if filepath.IsAbs(header.Name) || filepath.Clean(header.Name) != header.Name || strings.HasPrefix(header.Name, ".") || strings.Contains(header.Name, "/.") {
+			return errors.New("unsafe archive member")
+		}
+		if _, duplicate := contents[header.Name]; duplicate {
+			return errors.New("duplicate archive member")
+		}
+		content, readErr := io.ReadAll(reader)
+		if readErr != nil {
+			return readErr
+		}
+		contents[header.Name] = content
+		names = append(names, header.Name)
+	}
+	sort.Strings(names)
+	if !reflect.DeepEqual(names, releaseManifest) {
+		return errors.New("archive manifest mismatch")
+	}
+	lines := strings.Split(strings.TrimSpace(string(contents["SHA256SUMS"])), "\n")
+	if len(lines) != len(releaseManifest)-1 {
+		return errors.New("checksum count mismatch")
+	}
+	var checked []string
+	seen := make(map[string]bool)
+	for _, line := range lines {
+		fields := strings.Fields(line)
+		if len(fields) != 2 || fields[1] == "SHA256SUMS" || seen[fields[1]] {
+			return errors.New("invalid checksum entry")
+		}
+		seen[fields[1]] = true
+		checked = append(checked, fields[1])
+		expected, decodeErr := hex.DecodeString(fields[0])
+		payload, present := contents[fields[1]]
+		digest := sha256.Sum256(payload)
+		if decodeErr != nil || !present || !bytes.Equal(expected, digest[:]) {
+			return errors.New("checksum verification failed")
+		}
+	}
+	sort.Strings(checked)
+	if !reflect.DeepEqual(checked, releaseManifest[1:]) {
+		return errors.New("checksum coverage mismatch")
+	}
+	return nil
+}
+
+func buildReleaseMutation(t *testing.T, payloads map[string][]byte, names []string, badType string, typeFlag byte, epoch int64) []byte {
+	t.Helper()
+	var archive bytes.Buffer
+	gzipWriter := gzip.NewWriter(&archive)
+	tarWriter := tar.NewWriter(gzipWriter)
+	for _, name := range names {
+		data := payloads[name]
+		if data == nil {
+			data = []byte("unexpected fixture")
+		}
+		header := &tar.Header{Name: name, Mode: 0o644, Size: int64(len(data)), ModTime: time.Unix(epoch, 0), Typeflag: tar.TypeReg}
+		if name == badType {
+			header.Typeflag = typeFlag
+			header.Size = 0
+			if typeFlag == tar.TypeSymlink {
+				header.Linkname = "bin/codex-authority"
+			}
+		}
+		if err := tarWriter.WriteHeader(header); err != nil {
+			t.Fatal(err)
+		}
+		if header.Typeflag == tar.TypeReg {
+			if _, err := tarWriter.Write(data); err != nil {
+				t.Fatal(err)
+			}
+		}
+	}
+	if err := tarWriter.Close(); err != nil {
+		t.Fatal(err)
+	}
+	if err := gzipWriter.Close(); err != nil {
+		t.Fatal(err)
+	}
+	return archive.Bytes()
+}
+
+func TestReleaseArchiveIsDeterministicExactAndSourceFree(t *testing.T) {
+	const epoch = int64(1_700_000_000)
+	first, payloads := buildReleaseFixture(t, epoch)
+	second, _ := buildReleaseFixture(t, epoch)
+	if sha256.Sum256(first) != sha256.Sum256(second) {
+		t.Fatal("fixed-input archive was not reproducible")
+	}
+	if err := validateReleaseArchive(first, epoch); err != nil {
+		t.Fatal(err)
+	}
+	for _, name := range []string{"source.go", "go.mod", ".git/config", "tasks/evidence", "seed.json", "../escape", "/absolute", "bin/extra", "deploy/.hidden"} {
+		names := append(append([]string(nil), releaseManifest...), name)
+		if err := validateReleaseArchive(buildReleaseMutation(t, payloads, names, "", 0, epoch), epoch); err == nil {
+			t.Fatalf("forbidden archive mutation passed: %s", name)
+		}
+	}
+	if err := validateReleaseArchive(buildReleaseMutation(t, payloads, releaseManifest, "bin/codex-authority", tar.TypeSymlink, epoch), epoch); err == nil {
+		t.Fatal("symlink archive mutation passed")
+	}
+	if err := validateReleaseArchive(buildReleaseMutation(t, payloads, releaseManifest, "deploy/systemd/codex-authority-broker.service", tar.TypeDir, epoch), epoch); err == nil {
+		t.Fatal("directory archive mutation passed")
+	}
+	corrupt := make(map[string][]byte, len(payloads))
+	for name, data := range payloads {
+		corrupt[name] = append([]byte(nil), data...)
+	}
+	if corrupt["SHA256SUMS"][0] == '0' {
+		corrupt["SHA256SUMS"][0] = '1'
+	} else {
+		corrupt["SHA256SUMS"][0] = '0'
+	}
+	if err := validateReleaseArchive(buildReleaseMutation(t, corrupt, releaseManifest, "", 0, epoch), epoch); err == nil {
+		t.Fatal("corrupt checksum passed")
+	}
+	duplicate := make(map[string][]byte, len(payloads))
+	for name, data := range payloads {
+		duplicate[name] = append([]byte(nil), data...)
+	}
+	lines := strings.Split(strings.TrimSpace(string(duplicate["SHA256SUMS"])), "\n")
+	lines[len(lines)-1] = lines[0]
+	duplicate["SHA256SUMS"] = []byte(strings.Join(lines, "\n") + "\n")
+	if err := validateReleaseArchive(buildReleaseMutation(t, duplicate, releaseManifest, "", 0, epoch), epoch); err == nil {
+		t.Fatal("duplicate checksum coverage passed")
+	}
 }
 
 func (r *trackingReader) Read(p []byte) (int, error) {

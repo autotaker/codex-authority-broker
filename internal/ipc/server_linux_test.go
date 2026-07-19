@@ -22,6 +22,29 @@ type recordingBackend struct {
 	err      error
 }
 
+type actorBackend struct {
+	uid uint32
+	ok  bool
+}
+
+func (b *actorBackend) Handle(ctx context.Context, _ Request) (Response, error) {
+	b.uid, b.ok = ActorUID(ctx)
+	return Response{OK: true}, nil
+}
+
+func TestServerPassesAuthenticatedActorAfterAdmission(t *testing.T) {
+	const actor = uint32(4242)
+	backend := &actorBackend{}
+	credential := func(*net.UnixConn) (uint32, error) { return actor, nil }
+	server, path, cancel := startTestServer(t, actor, backend, credential)
+	response, err := exchange(path, Request{Version: ProtocolVersion, Operation: OperationReady})
+	if err != nil || !response.OK || !backend.ok || backend.uid != actor {
+		t.Fatal("backend did not receive the authenticated numeric actor")
+	}
+	cancel()
+	_ = server.Close()
+}
+
 func (b *recordingBackend) Handle(context.Context, Request) (Response, error) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
