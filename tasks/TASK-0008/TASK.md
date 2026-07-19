@@ -1,6 +1,6 @@
 # TASK-0008: sudo live check and no cache
 
-**Depends on:** TASK-0014 (merged).
+**Depends on:** TASK-0015 (merged).
 
 **Status:** planned and executable.
 
@@ -12,7 +12,7 @@
   "title": "sudo live check and no cache",
   "status": "planned",
   "executable": true,
-  "depends_on": ["TASK-0014"],
+  "depends_on": ["TASK-0015"],
   "expected_production_sloc": 120,
   "expected_cumulative_production_sloc": 1322,
   "target_cumulative_cap": 1350,
@@ -22,7 +22,7 @@
   "test_paths": ["cmd/codex-authority-sudo/main_test.go", "deploy/sudo/codex-authority_test.go"],
   "entrypoint": "cmd/codex-authority-sudo/main.go",
   "fixture_elevation_needs": "Isolated Ubuntu sudo/PAM fixture, disposable dedicated identity, controlled clock/socket, and approved narrow elevation/rollback procedure; never mutate workstation sudo policy.",
-  "lap_1": "After TASK-0014 merge and approved plans, implement per-invocation live request and declarative timestamp-cache disablement; run go test ./cmd/codex-authority-sudo ./internal/ipc plus the isolated sudo fixture covering allow, expiry, daemon unavailable/restart, malformed/unauthorized reply, and two consecutive invocations.",
+  "lap_1": "After TASK-0015 merge and approved plans, implement per-invocation live request and declarative timestamp-cache disablement; run go test ./cmd/codex-authority-sudo ./internal/ipc plus the isolated sudo fixture covering allow, expiry, daemon unavailable/restart, malformed/unauthorized reply, and two consecutive invocations.",
   "lap_2": "Independent REVIEW runs focused tests and repository-native full check; QA uses the isolated elevated fixture to prove a live unexpired lease permits and every deny case fails closed with no cached reuse; main owns Git closure.",
   "exclusions": ["daemon/backend assembly", "push", "GitHub credentials", "rich audit", "release", "installer", "packaging", "canary", "real workstation policy mutation"],
   "split_stop_rule": "Classify not_started/environment_issue if the isolated elevated fixture or rollback proof is unavailable. Split before DEV if more than one client entrypoint and declarative policy is required, forecast exceeds the post-reestimate trigger 1325, or platform/PAM differences cannot fit two laps; never weaken live-per-call or no-cache behavior. A forecast or candidate above target 1350 stops for explicit replan and exact ordered shedding review; hard guard 1450 is absolute.",
@@ -36,8 +36,8 @@
 
 Provide the minimal `pam_exec`-compatible live-check client and a dedicated
 identity's declarative no-cache sudo policy. Each invocation requests current
-authority through TASK-0014's fixed IPC daemon; it never relies on sudo timestamp
-caching. TASK-0013/TASK-0014 runtime and daemon assembly are consumed, not changed.
+authority through TASK-0015's fixed IPC daemon; it never relies on sudo timestamp
+caching. TASK-0013/TASK-0015 runtime and daemon assembly are consumed, not changed.
 
 The production paths are exactly `cmd/codex-authority-sudo/main.go` and
 `deploy/sudo/codex-authority`; tests are exactly the two paths in the metadata.
@@ -45,7 +45,7 @@ No real workstation sudo policy is installed or modified.
 
 ## Preflight and two-Lap delivery
 
-Preflight requires merged TASK-0014 and approved PLAN and QA_PLAN; an isolated
+Preflight requires merged TASK-0015 and approved PLAN and QA_PLAN; an isolated
 Ubuntu sudo/PAM fixture; a disposable dedicated identity; controlled clock and
 socket; required tools; and a narrow elevation/rollback procedure. A missing
 fixture or rollback proof is `not_started/environment_issue`; preflight does
