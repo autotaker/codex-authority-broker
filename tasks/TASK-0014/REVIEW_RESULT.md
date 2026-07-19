@@ -111,3 +111,58 @@ Completed at `2026-07-19T08:28:12Z`, before the `2026-07-19T08:39:41Z`
 deadline. No product tests were rerun because this is a contract-only
 reconciliation and no product source changed. No secret, TOTP, credential,
 token, raw seed, Git log, staging, commit, or merge operation was performed.
+
+---
+
+## Measured-boundary contract amendment review — PASS
+
+**PASS (`pass`, retries 0) for the zero-product contract amendment only.**
+This decision preserves every earlier review attempt and does **not** approve
+the stopped broker candidate. REVIEW modified only this result file.
+
+### Independent reconciliation
+
+| Assertion | Result | Evidence |
+|---|---|---|
+| Local measured boundary | PASS | Merged baseline **922** + independently measured readable floor **280** = **1202**. TASK-0014 expected production/cumulative/trigger are exactly `280/1202/1202`; target 1250 and hard guard 1350 are unchanged. |
+| Downstream wave arithmetic | PASS | `922 + 280 + 120 + 0 = 1322`; TASK-0008 and TASK-0009 each state cumulative **1322**. Backlog added SLOC is 400 and cumulative 1322. |
+| Wave reserves | PASS | `1500 - 1322 = 178` target reserve and `1800 - 1322 = 478` hard reserve; backlog formula and later-reserve text match. Later audit/attestation/manual-canary eligibility remains blocked until TASK-0012 PASS+merge. |
+| Metadata equality | PASS | Parsed `backlog.json`; sorted full task objects for TASK-0014, TASK-0008, and TASK-0009 are byte-equivalent to each TASK.md JSON contract block. |
+| Unchanged later contracts | PASS | `git diff --exit-code` is clean for TASK-0010, TASK-0011, and TASK-0012. TASK-0009 still requires its own PASS+merge and explicit replan; no push-to-v2 or later reserve is silently enabled. |
+| Mandatory controls / shedding | PASS | Backlog's 10 mandatory-v1 controls and exact seven-item ordered-feature-shedding array are unchanged from `HEAD`. No compression/control/test deletion is authorized. |
+| Lap boundary | PASS | Exactly one conditional Lap-2 DEV correction/test-completion is authorized at broker `<=280` / cumulative `<=1202`, followed by independent REVIEW and QA. TASK, backlog, PLAN Revision 4, and QA_PLAN Revision 5 all prohibit Lap 3. |
+| Four mandatory repairs | PASS | PLAN R4 and QA_PLAN R5 both require: `mode&07777 == 0600`; nil-safe `makeRuntime` and `listen`; close a non-nil server returned with listen error before closing runtime; accept nil `Serve` only after cancellation. Final `os.NewFile` reader ownership must also be tested without a second final-fd close. |
+| Zero contract product delta | PASS | `git diff --name-only -- '*.go'` is empty. Tracked amendment scope is exactly backlog, TASK-0008, TASK-0009, and TASK-0014 TASK/PLAN/QA_PLAN. The untracked broker source is measurement evidence only. |
+
+### Candidate non-approval and measurement evidence
+
+The stopped untracked `cmd/codex-authority-broker/main.go` independently counts
+**283 canonical production SLOC**, so the observed candidate total is
+`922 + 283 = 1205`, above the amended 1202 boundary. `gofmt -l` reports that
+file and `main_test.go` is absent. It is therefore **not gate-ready and is not
+approved** by this measured-boundary review. The 280 value is the independently
+reviewed readable correction floor/conditional maximum, not acceptance of the
+current source.
+
+### Commands and scope evidence
+
+| Check | Result |
+|---|---|
+| `jq -e . backlog.json` | PASS |
+| Sorted backlog/TASK metadata comparison for TASK-0014/0008/0009 | PASS, no diff |
+| `git diff --exit-code` for TASK-0010/0011/0012 | PASS, unchanged |
+| HEAD comparison of mandatory controls and ordered shedding | PASS, no diff |
+| `git diff --check` | PASS |
+| `GOFLAGS=-buildvcs=false GOCACHE=$(mktemp -d) go test -count=1 ./...` | PASS; broker reports `[no test files]`, all existing packages pass in socket-capable execution |
+| `make check` | ENVIRONMENT: `No rule to make target 'check'`; supplied worktree has no repository-native target |
+
+### Accounting
+
+- Changed review path: `tasks/TASK-0014/REVIEW_RESULT.md` only.
+- `active_ms=unavailable` (review runtime exposed no reliable stage-start
+  timestamp; duration is not inferred), `wait_ms=0`, `retries=0`.
+- Overall classification: `pass` for the zero-product measured-boundary
+  amendment. `make check` sub-classification: `environment`.
+- SLOC: merged baseline **922**; current stopped evidence candidate **283**;
+  observed candidate cumulative **1205**; approved conditional readable
+  boundary **280 / 1202**; contract product delta **0**.

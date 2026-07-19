@@ -101,3 +101,51 @@ Capture each command's exit status and timing. The socket/lifecycle test must al
 ## QA disposition template
 
 Candidate QA may be marked **PASS** only when all acceptance rows and required commands pass, the independently counted forecast/candidate is **<=1200**, no scope stop applies, and timing/classification evidence is complete. Above **1200**, stop/replan; above **1250**, forecast/candidate stop plus the exact ordered shedding audit; at or above a forecasted/crossed **1350**, absolute FAIL/stop. Otherwise mark **FAIL**, **SPLIT**, or **ENVIRONMENT NULL** with the exact row, command, observed ordering, and redacted evidence. This document is a plan baseline and reconciliation, not a QA result, and does not modify product, tests, review/QA results, Git, or operational logs.
+
+## Revision 3 — independent QA comparison of PLAN Revision 2: FAIL
+
+**FAIL (`planning_defect`, retries 0): DEV is not approved.** PLAN Revision 2 retains the TASK-first descriptor walk/bounded names, strict schema, redaction and owned-buffer limit, construction-before-listen, lifecycle/concurrency, mutation, fixture, existing-client, ownership, no-compression, `dev-luna`, and reconciled SLOC controls. Its ledger is also coherent: **922 + 232 = 1154**, with readable range **1147..1162**, local gates **1200/1250/1350**, and global **1500/1800** with no borrowed headroom. Historical Revision 1 FAIL remains historical and is not reclassified.
+
+The PLAN nevertheless weakens two required deterministic QA commands: it specifies `go test -race ./cmd/codex-authority-broker` instead of the baseline-required `go test -count=1 -race ./cmd/codex-authority-broker`, and `GOFLAGS=-buildvcs=false GOCACHE="$(mktemp -d)" go test ./...` instead of the baseline-required `go test -count=1 ./...`. Omitting `-count=1` permits cached test results and fails the existing command/no-compression acceptance condition. This is a PLAN-only correction: restore both exact baseline commands without weakening any other control, then obtain a fresh independent QA planning decision; do not begin DEV meanwhile.
+
+| Evidence | Observed state |
+| --- | --- |
+| Changed paths | `tasks/TASK-0014/QA_PLAN.md` only |
+| Active / wait / retry | `active_ms=unavailable`; `wait_ms=0`; `retries=0` |
+| Classification / null reason | `planning_defect`; turn-start timestamp unavailable, so active duration is not inferred |
+| State | **active:** PLAN Revision 2 command-gate correction; **wait:** corrected PLAN then independent QA recheck; **retry:** none |
+
+## Revision 4 — independent QA retry of PLAN Revision 3: PASS
+
+**PASS (`none`, retries 0): DEV is approved for Lap 1 only.** PLAN Revision 3 restores the exact required commands:
+
+```sh
+go test -count=1 -race ./cmd/codex-authority-broker
+GOFLAGS=-buildvcs=false GOCACHE="$(mktemp -d)" go test -count=1 ./...
+```
+
+Independent comparison confirms Revision 3 changes only those omitted cache-bypass flags. The TASK-first acceptance, scope/owned-path and gate controls, `dev-luna` Lap-1-only authorization, and no-compression controls remain unchanged. Revision 3 also preserves Revision 1's historical **FAIL (`planning_defect`)**; this PASS does not erase or reclassify it. Full match is present, so the Revision 3 planning defect is resolved and DEV may proceed under the existing reconciled controls.
+
+| Evidence | Observed state |
+| --- | --- |
+| Changed path | `tasks/TASK-0014/QA_PLAN.md` only |
+| Timing | observed `2026-07-19T08:49:15Z`; `active_ms=unavailable`; `wait_ms=0` |
+| Retry / classification | `retries=0`; `none` |
+| Null reason / next state | turn-start timestamp unavailable, so active duration is not inferred; **active:** `dev-luna` Lap 1; **wait:** independent REVIEW then QA; **retry:** none |
+
+## Revision 5 — independent QA amendment reconciliation: PASS
+
+**PASS (`none`, retries 0): conditional Lap-2 DEV is approved, and no other DEV is approved.** Historical Revision 1/3 FAIL evidence and Revision 4's Lap-1-only PASS remain intact. The amended TASK-0014 contract, TASK-0008/TASK-0009 contracts, backlog, and PLAN Revision 4 now match exactly: **922** merged baseline + readable TASK-0014 floor **280** = local cumulative/trigger **1202**; target **1250**; hard guard **1350**; global target/hard **1500/1800**. This is a measured-boundary amendment, not borrowed headroom or a gate raise beyond 1202.
+
+The downstream arithmetic also matches exactly: `922 + 280 + 120 + 0 = 1322` cumulative for TASK-0008/TASK-0009. TASK-0009 remains the zero-SLOC measurement gate and must PASS+merge then explicitly replan TASK-0010--TASK-0012; no later arithmetic, reserve use, or push-to-v2 selection is silently enabled.
+
+Approval is limited to **one conditional Lap-2 DEV correction and deterministic broker-test completion** at **<=280** broker production SLOC / cumulative **<=1202**, followed by independent REVIEW and QA. There is **no Lap 3**. Before any DEV, the candidate and contract arithmetic must still match exactly; otherwise return **FAIL/SPLIT (`planning_defect`)** with no retry authorization. The four named repairs are mandatory: exact final mode `mode&07777 == 0600`; nil-safe `makeRuntime` and `listen`; close a non-nil server returned with listen error before runtime close; and treat a nil `Serve` result as clean only after cancellation. Tests must also prove final `os.NewFile` reader-close ownership without a second final-descriptor close.
+
+All TASK-first controls remain unchanged and binding: descriptor walk/bounds, strict bounded schema, redaction and owned-buffer limits, construction-before-listen, lifecycle/ownership/restart, full mutation matrix, Linux fixture seams, unchanged existing-client behavior, exact cache-bypassing commands, and no compression, control/test deletion, generated-code disguise, API/scope expansion, or weakened fixture proof. A measured or forecast candidate above 1202 stops; above 1250 requires explicit replan plus the existing ordered shedding audit; 1350 is absolute and 1500/1800 provide no local headroom.
+
+| Evidence | Observed state |
+| --- | --- |
+| Changed path | `tasks/TASK-0014/QA_PLAN.md` only |
+| Timing | observed `2026-07-19T09:00:00Z`; `active_ms=unavailable`; `wait_ms=0` |
+| Retry / classification | `retries=0`; `none`; null reason: turn-start timestamp unavailable, so active duration is not inferred |
+| State | **active:** one conditional Lap-2 DEV correction/test completion; **wait:** independent REVIEW then QA; **retry:** none; **no Lap 3** |
