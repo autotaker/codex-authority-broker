@@ -1,0 +1,3 @@
+#%PAM-1.0
+auth required pam_exec.so quiet seteuid /usr/local/bin/codex-authority-sudo
+account required pam_permit.so

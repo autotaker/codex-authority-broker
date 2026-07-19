@@ -185,6 +185,13 @@ func (s *State) Active() bool {
 	return s.lease.sequence != 0
 }
 
+func (s *State) Deadline() (time.Time, bool) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.expire(s.clock.Now())
+	return s.leaseEnd.UTC(), s.lease.sequence != 0
+}
+
 func (s *State) expire(now time.Time) {
 	if s.challenge.sequence != 0 && !now.Before(s.challengeEnd) {
 		s.challenge = Challenge{}

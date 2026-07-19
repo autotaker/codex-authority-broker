@@ -1,12 +1,18 @@
 package backend
 
 import (
+	"bytes"
 	"context"
 	"crypto/hmac"
 	"crypto/sha1"
 	"encoding/binary"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
+	"os"
+	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 	"testing"
@@ -19,6 +25,347 @@ import (
 type testClock struct {
 	mu  sync.Mutex
 	now time.Time
+}
+
+type auditRecord struct {
+	CorrelationID string  `json:"correlation_id"`
+	ActorUID      uint32  `json:"actor_uid"`
+	Scope         string  `json:"scope"`
+	Result        string  `json:"result"`
+	LeaseExpiry   *string `json:"lease_expiry"`
+}
+
+func startAuditServer(t *testing.T, runtime *Runtime) ipc.Client {
+	t.Helper()
+	path := filepath.Join(t.TempDir(), "audit.sock")
+	server, err := ipc.Listen(ipc.Config{Path: path, AllowedUID: uint32(os.Geteuid())}, runtime)
+	if err != nil {
+		t.Skipf("Unix socket fixture unavailable: %v", err)
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	go func() { _ = server.Serve(ctx) }()
+	t.Cleanup(func() {
+		cancel()
+		_ = server.Close()
+		runtime.Close()
+	})
+	return ipc.Client{Path: path}
+}
+
+func auditCall(t *testing.T, client ipc.Client, request ipc.Request) ipc.Response {
+	t.Helper()
+	response, err := client.Call(context.Background(), request)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return response
+}
+
+func parseAuditRecords(t *testing.T, data []byte) []auditRecord {
+	t.Helper()
+	lines := bytes.Split(bytes.TrimSpace(data), []byte{'\n'})
+	records := make([]auditRecord, len(lines))
+	for index, line := range lines {
+		if len(line)+1 > maxAuditBytes {
+			t.Fatal("audit line exceeded bound")
+		}
+		var fields map[string]json.RawMessage
+		if err := json.Unmarshal(line, &fields); err != nil || len(fields) != 5 {
+			t.Fatal("audit event was not an exact five-field object")
+		}
+		for _, name := range []string{"correlation_id", "actor_uid", "scope", "result", "lease_expiry"} {
+			if _, ok := fields[name]; !ok {
+				t.Fatalf("audit field %q missing", name)
+			}
+		}
+		if err := json.Unmarshal(line, &records[index]); err != nil {
+			t.Fatal(err)
+		}
+	}
+	return records
+}
+
+func TestAuditExactSchemaSequenceExpiryAndRedaction(t *testing.T) {
+	secret := []byte("AUDIT-SECRET-SENTINEL")
+	clock := &testClock{now: time.Unix(1_701_000_000, 0)}
+	var sink bytes.Buffer
+	runtime, err := newRuntimeWithAudit(secret, clock, &sink)
+	if err != nil {
+		t.Fatal(err)
+	}
+	client := startAuditServer(t, runtime)
+	if response := auditCall(t, client, testRequest(ipc.OperationReady, []byte(`"PAYLOAD-SENTINEL"`))); response.OK {
+		t.Fatal("ready payload was allowed")
+	}
+	if response := auditCall(t, client, testRequest(ipc.OperationReady, nil)); !response.OK {
+		t.Fatal("ready was denied")
+	}
+	clock.advance(30 * time.Second)
+	expiry := clock.Now().Add(300 * time.Second).UTC().Format(time.RFC3339Nano)
+	if response := auditCall(t, client, testRequest(ipc.OperationOTP, otpPayload(secret, clock.Now()))); !response.OK {
+		t.Fatal("otp was denied")
+	}
+	if response := auditCall(t, client, testRequest(ipc.OperationAuthorize, nil)); !response.OK {
+		t.Fatal("authorize was denied")
+	}
+	if response := auditCall(t, client, testRequest(ipc.OperationReady, nil)); response.OK {
+		t.Fatal("ready replaced an active lease")
+	}
+
+	records := parseAuditRecords(t, sink.Bytes())
+	if len(records) != 5 {
+		t.Fatalf("audit records = %d", len(records))
+	}
+	wantScope := []string{"ready", "ready", "otp", "authorize", "ready"}
+	wantResult := []string{"deny", "allow", "allow", "allow", "deny"}
+	for index, record := range records {
+		value, parseErr := strconv.ParseUint(record.CorrelationID, 16, 64)
+		if parseErr != nil || value != uint64(index+1) || record.CorrelationID != strconv.FormatUint(value, 16) {
+			t.Fatal("correlation sequence was not fresh nonzero lowercase hex")
+		}
+		if record.ActorUID != uint32(os.Geteuid()) || record.Scope != wantScope[index] || record.Result != wantResult[index] {
+			t.Fatal("audit tuple did not match its request")
+		}
+		if index == 2 || index == 3 {
+			if record.LeaseExpiry == nil || *record.LeaseExpiry != expiry {
+				t.Fatal("allowed authority expiry was not immutable")
+			}
+		} else if record.LeaseExpiry != nil {
+			t.Fatal("ready or denial carried an expiry")
+		}
+	}
+	for _, sentinel := range []string{"AUDIT-SECRET-SENTINEL", "PAYLOAD-SENTINEL", `"code"`} {
+		if bytes.Contains(sink.Bytes(), []byte(sentinel)) {
+			t.Fatal("sensitive input entered audit output")
+		}
+	}
+}
+
+type failingAuditWriter struct {
+	calls  int
+	failAt int
+	short  bool
+}
+
+func (w *failingAuditWriter) Write(data []byte) (int, error) {
+	w.calls++
+	if w.calls != w.failAt {
+		return len(data), nil
+	}
+	if w.short {
+		return len(data) - 1, nil
+	}
+	return 0, io.ErrClosedPipe
+}
+
+func TestAuditFailureClosesRuntimeWithoutRetry(t *testing.T) {
+	for _, test := range []struct {
+		name   string
+		failAt int
+		short  bool
+		scope  string
+	}{
+		{name: "ready-error", failAt: 1, scope: ipc.OperationReady},
+		{name: "otp-short", failAt: 2, short: true, scope: ipc.OperationOTP},
+		{name: "authorize-error", failAt: 3, scope: ipc.OperationAuthorize},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			secret := []byte("audit-failure-fixture")
+			clock := &testClock{now: time.Unix(1_701_100_000, 0)}
+			writer := &failingAuditWriter{failAt: test.failAt, short: test.short}
+			runtime, err := newRuntimeWithAudit(secret, clock, writer)
+			if err != nil {
+				t.Fatal(err)
+			}
+			client := startAuditServer(t, runtime)
+			if test.scope != ipc.OperationReady {
+				if response := auditCall(t, client, testRequest(ipc.OperationReady, nil)); !response.OK {
+					t.Fatal("readiness setup failed")
+				}
+				clock.advance(30 * time.Second)
+			}
+			if test.scope == ipc.OperationAuthorize {
+				if response := auditCall(t, client, testRequest(ipc.OperationOTP, otpPayload(secret, clock.Now()))); !response.OK {
+					t.Fatal("otp setup failed")
+				}
+			}
+			request := testRequest(test.scope, nil)
+			if test.scope == ipc.OperationOTP {
+				request = testRequest(test.scope, otpPayload(secret, clock.Now()))
+			}
+			if response := auditCall(t, client, request); response.OK {
+				t.Fatal("sink failure published an allow")
+			}
+			if response := auditCall(t, client, testRequest(ipc.OperationAuthorize, nil)); response.OK {
+				t.Fatal("authority remained usable after sink failure")
+			}
+			if writer.calls != test.failAt {
+				t.Fatalf("audit writes = %d, want %d", writer.calls, test.failAt)
+			}
+		})
+	}
+}
+
+type blockingAuditWriter struct {
+	mu      sync.Mutex
+	calls   int
+	lines   [][]byte
+	entered chan struct{}
+	release chan struct{}
+	blockAt int
+}
+
+func (w *blockingAuditWriter) Write(data []byte) (int, error) {
+	w.mu.Lock()
+	w.calls++
+	w.lines = append(w.lines, append([]byte(nil), data...))
+	call := w.calls
+	w.mu.Unlock()
+	if call == w.blockAt {
+		close(w.entered)
+		<-w.release
+	}
+	return len(data), nil
+}
+
+func TestOTPAuthorityWaitsForSuccessfulAuditWrite(t *testing.T) {
+	secret := []byte("audit-publication-barrier")
+	clock := &testClock{now: time.Unix(1_701_200_000, 0)}
+	writer := &blockingAuditWriter{entered: make(chan struct{}), release: make(chan struct{}), blockAt: 2}
+	runtime, err := newRuntimeWithAudit(secret, clock, writer)
+	if err != nil {
+		t.Fatal(err)
+	}
+	client := startAuditServer(t, runtime)
+	if response := auditCall(t, client, testRequest(ipc.OperationReady, nil)); !response.OK {
+		t.Fatal("readiness setup failed")
+	}
+	clock.advance(30 * time.Second)
+	type callResult struct {
+		response ipc.Response
+		err      error
+	}
+	otpDone := make(chan callResult, 1)
+	go func() {
+		response, callErr := client.Call(context.Background(), testRequest(ipc.OperationOTP, otpPayload(secret, clock.Now())))
+		otpDone <- callResult{response: response, err: callErr}
+	}()
+	select {
+	case <-writer.entered:
+	case <-time.After(time.Second):
+		t.Fatal("otp audit write did not reach barrier")
+	}
+	authorizeDone := make(chan callResult, 1)
+	go func() {
+		response, callErr := client.Call(context.Background(), testRequest(ipc.OperationAuthorize, nil))
+		authorizeDone <- callResult{response: response, err: callErr}
+	}()
+	select {
+	case <-authorizeDone:
+		t.Fatal("authorize observed lease before otp audit completed")
+	case <-time.After(50 * time.Millisecond):
+	}
+	close(writer.release)
+	if result := <-otpDone; result.err != nil || !result.response.OK {
+		t.Fatal("otp was denied after successful audit")
+	}
+	if result := <-authorizeDone; result.err != nil || !result.response.OK {
+		t.Fatal("authorize was denied after otp audit completed")
+	}
+	writer.mu.Lock()
+	lines := append([][]byte(nil), writer.lines...)
+	writer.mu.Unlock()
+	records := parseAuditRecords(t, bytes.Join(lines, nil))
+	if len(records) != 3 || records[1].CorrelationID == records[2].CorrelationID || records[1].Scope != "otp" || records[2].Scope != "authorize" || records[1].Result != "allow" || records[2].Result != "allow" {
+		t.Fatal("concurrent audit identifiers or tuples crossed")
+	}
+}
+
+func TestCloseWaitsForAuditPublication(t *testing.T) {
+	writer := &blockingAuditWriter{entered: make(chan struct{}), release: make(chan struct{}), blockAt: 1}
+	runtime, err := newRuntimeWithAudit([]byte("audit-close-barrier"), nil, writer)
+	if err != nil {
+		t.Fatal(err)
+	}
+	client := startAuditServer(t, runtime)
+	done := make(chan ipc.Response, 1)
+	go func() {
+		response, _ := client.Call(context.Background(), testRequest(ipc.OperationReady, nil))
+		done <- response
+	}()
+	select {
+	case <-writer.entered:
+	case <-time.After(time.Second):
+		t.Fatal("audit write did not reach publication barrier")
+	}
+	closed := make(chan struct{})
+	go func() { runtime.Close(); close(closed) }()
+	select {
+	case <-closed:
+		t.Fatal("Close completed before audit publication")
+	case <-time.After(50 * time.Millisecond):
+	}
+	close(writer.release)
+	if response := <-done; !response.OK {
+		t.Fatal("successfully audited decision was denied")
+	}
+	select {
+	case <-closed:
+	case <-time.After(time.Second):
+		t.Fatal("Close did not complete after audit publication")
+	}
+}
+
+func TestAuditSequenceOverflowClosesWithoutWrite(t *testing.T) {
+	var sink bytes.Buffer
+	runtime, err := newRuntimeWithAudit([]byte("audit-overflow-fixture"), nil, &sink)
+	if err != nil {
+		t.Fatal(err)
+	}
+	runtime.auditID.Store(^uint64(0))
+	client := startAuditServer(t, runtime)
+	if response := auditCall(t, client, testRequest(ipc.OperationReady, nil)); response.OK {
+		t.Fatal("sequence overflow published an allow")
+	}
+	if response := auditCall(t, client, testRequest(ipc.OperationAuthorize, nil)); response.OK {
+		t.Fatal("runtime remained usable after sequence overflow")
+	}
+	if sink.Len() != 0 {
+		t.Fatal("sequence overflow attempted an audit write")
+	}
+}
+
+func TestAuditContextAbsenceClosesWithoutWrite(t *testing.T) {
+	var sink bytes.Buffer
+	runtime, err := newRuntimeWithAudit([]byte("audit-context-fixture"), nil, &sink)
+	if err != nil {
+		t.Fatal(err)
+	}
+	response, err := runtime.Handle(context.Background(), testRequest(ipc.OperationReady, nil))
+	assertDenied(t, response, err)
+	runtime.mu.Lock()
+	closed := runtime.closed
+	runtime.mu.Unlock()
+	if !closed || sink.Len() != 0 {
+		t.Fatal("missing actor context did not close before audit")
+	}
+}
+
+func TestClosureBeforeAuditWritesDeny(t *testing.T) {
+	var sink bytes.Buffer
+	runtime, err := newRuntimeWithAudit([]byte("audit-cancel-fixture"), nil, &sink)
+	if err != nil {
+		t.Fatal(err)
+	}
+	runtime.beforePublish = func(bool) { runtime.closeUnderAudit() }
+	client := startAuditServer(t, runtime)
+	if response := auditCall(t, client, testRequest(ipc.OperationReady, nil)); response.OK {
+		t.Fatal("closed decision was published as allow")
+	}
+	records := parseAuditRecords(t, sink.Bytes())
+	if len(records) != 1 || records[0].Result != "deny" || records[0].LeaseExpiry != nil {
+		t.Fatal("pre-audit closure was not a deny with null expiry")
+	}
 }
 
 func (c *testClock) Now() time.Time {
@@ -292,7 +639,7 @@ func TestAuthorizeExpiryAndCloseRaceFailsClosed(t *testing.T) {
 
 func TestVersionContextAndRedaction(t *testing.T) {
 	secret := []byte("UNIQUE-SECRET-MARKER")
-	runtime, err := New(secret)
+	runtime, err := newRuntime(secret, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -347,7 +694,7 @@ func TestExpiredAndRateLimitedChallengesDeny(t *testing.T) {
 }
 
 func TestRegisterBoundsAndFixedAllowlist(t *testing.T) {
-	runtime, err := New([]byte("registration-secret"))
+	runtime, err := newRuntime([]byte("registration-secret"), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -464,7 +811,7 @@ func TestReadyOTPBarrierDoesNotUseStaleChallenge(t *testing.T) {
 }
 
 func TestCloseCancelsAdmittedCallAndFailsClosed(t *testing.T) {
-	runtime, err := New([]byte("close-secret"))
+	runtime, err := newRuntime([]byte("close-secret"), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -512,7 +859,7 @@ func TestCloseCancelsAdmittedCallAndFailsClosed(t *testing.T) {
 }
 
 func TestCallerCancellation(t *testing.T) {
-	runtime, err := New([]byte("caller-secret"))
+	runtime, err := newRuntime([]byte("caller-secret"), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -523,7 +870,7 @@ func TestCallerCancellation(t *testing.T) {
 }
 
 func TestCallerCancellationReachesAdmittedHandler(t *testing.T) {
-	runtime, err := New([]byte("admitted-caller-secret"))
+	runtime, err := newRuntime([]byte("admitted-caller-secret"), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -558,7 +905,7 @@ func TestCallerCancellationReachesAdmittedHandler(t *testing.T) {
 }
 
 func TestCallerCancellationWinsBeforeSuccessPublication(t *testing.T) {
-	runtime, err := New([]byte("publication-caller-secret"))
+	runtime, err := newRuntime([]byte("publication-caller-secret"), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -598,7 +945,7 @@ func TestCallerCancellationWinsBeforeSuccessPublication(t *testing.T) {
 }
 
 func TestCloseWinsWaitingHandleGate(t *testing.T) {
-	runtime, err := New([]byte("waiting-close-secret"))
+	runtime, err := newRuntime([]byte("waiting-close-secret"), nil)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -40,6 +40,17 @@ type SocketAccess struct {
 	GroupGID uint32
 }
 
+type actorKey struct{}
+
+func withActor(ctx context.Context, uid uint32) context.Context {
+	return context.WithValue(ctx, actorKey{}, uid)
+}
+
+func ActorUID(ctx context.Context) (uint32, bool) {
+	uid, ok := ctx.Value(actorKey{}).(uint32)
+	return uid, ok
+}
+
 type credentialReader func(*net.UnixConn) (uint32, error)
 
 type socketIdentity struct {
@@ -214,7 +225,7 @@ func (s *Server) handle(connection *net.UnixConn) {
 		return
 	}
 	s.mu.Unlock()
-	response, backendErr := s.backend.Handle(s.context, request)
+	response, backendErr := s.backend.Handle(withActor(s.context, uid), request)
 	if backendErr != nil {
 		s.writeFailure(connection)
 		return

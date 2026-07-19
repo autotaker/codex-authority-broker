@@ -90,6 +90,15 @@ func TestLeaseHasSeparateAbsoluteDeadline(t *testing.T) {
 	if _, err := state.Activate(challenge); err != nil {
 		t.Fatalf("Activate() error = %v", err)
 	}
+	deadline, active := state.Deadline()
+	if !active || !deadline.Equal(activation.Add(300*time.Second)) || deadline.Location() != time.UTC {
+		t.Fatal("deadline accessor did not return the immutable UTC deadline")
+	}
+	clock.now = activation.Add(time.Minute)
+	repeated, active := state.Deadline()
+	if !active || !repeated.Equal(deadline) {
+		t.Fatal("deadline accessor extended or replaced the lease")
+	}
 
 	clock.now = activation.Add(300*time.Second - time.Nanosecond)
 	if !state.Active() {
@@ -98,6 +107,9 @@ func TestLeaseHasSeparateAbsoluteDeadline(t *testing.T) {
 	clock.now = activation.Add(300 * time.Second)
 	if state.Active() {
 		t.Fatal("lease remained active at its deadline")
+	}
+	if expired, active := state.Deadline(); active || !expired.IsZero() {
+		t.Fatal("expired lease retained a deadline")
 	}
 	clock.now = activation.Add(301 * time.Second)
 	if state.Active() {

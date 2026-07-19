@@ -2,8 +2,14 @@ package backend
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
+	"io"
+	"os"
+	"strconv"
 	"sync"
+	"sync/atomic"
+	"time"
 
 	"github.com/autotaker/codex-authority-broker/internal/ipc"
 	"github.com/autotaker/codex-authority-broker/internal/lease"
@@ -14,6 +20,7 @@ const (
 	maxNameBytes  = 16
 	otpBytes      = 17
 	otpPrefix     = `{"code":"`
+	maxAuditBytes = 256
 )
 
 var ErrRegistration = errors.New("backend: invalid registration")
@@ -24,7 +31,10 @@ type Handler func(context.Context, ipc.Request) bool
 // Runtime owns one process-local lease state and fixed IPC routing.
 type Runtime struct {
 	mu            sync.Mutex
+	auditMu       sync.Mutex
 	closed        bool
+	audit         io.Writer
+	auditID       atomic.Uint64
 	handlers      map[string]Handler
 	beforeGate    func()
 	beforePublish func(bool)
@@ -37,12 +47,24 @@ type Runtime struct {
 	challenge      lease.Challenge
 }
 
+type auditEvent struct {
+	CorrelationID string     `json:"correlation_id"`
+	ActorUID      uint32     `json:"actor_uid"`
+	Scope         string     `json:"scope"`
+	Result        string     `json:"result"`
+	LeaseExpiry   *time.Time `json:"lease_expiry"`
+}
+
 // New constructs an idle runtime using the ordinary system clock.
-func New(secret []byte) (*Runtime, error) { return newRuntime(secret, nil) }
+func New(secret []byte) (*Runtime, error) { return newRuntimeWithAudit(secret, nil, os.Stderr) }
 
 func (*Runtime) String() string { return "backend.Runtime" }
 
 func newRuntime(secret []byte, clock lease.Clock) (*Runtime, error) {
+	return newRuntimeWithAudit(secret, clock, nil)
+}
+
+func newRuntimeWithAudit(secret []byte, clock lease.Clock, sink io.Writer) (*Runtime, error) {
 	verifier, err := lease.NewTOTPVerifier(secret)
 	if err != nil {
 		return nil, err
@@ -54,6 +76,7 @@ func newRuntime(secret []byte, clock lease.Clock) (*Runtime, error) {
 		shutdownCancel: shutdownCancel,
 		state:          lease.New(clock),
 		verifier:       verifier,
+		audit:          sink,
 	}
 	runtime.handlers[ipc.OperationReady] = runtime.handleReady
 	runtime.handlers[ipc.OperationOTP] = runtime.handleOTP
@@ -82,6 +105,20 @@ func (r *Runtime) Handle(ctx context.Context, request ipc.Request) (ipc.Response
 	if request.Operation != ipc.OperationReady && request.Operation != ipc.OperationOTP && request.Operation != ipc.OperationAuthorize {
 		return denied, nil
 	}
+	uid, audited := ipc.ActorUID(ctx)
+	if r.audit != nil {
+		r.auditMu.Lock()
+		defer r.auditMu.Unlock()
+		if !audited {
+			r.closeUnderAudit()
+			return denied, nil
+		}
+	}
+	id := r.auditID.Add(1)
+	if r.audit != nil && id == 0 {
+		r.closeUnderAudit()
+		return denied, nil
+	}
 	if r.beforeGate != nil {
 		r.beforeGate()
 	}
@@ -97,41 +134,65 @@ func (r *Runtime) Handle(ctx context.Context, request ipc.Request) (ipc.Response
 	}
 	callCtx, cancelCall := context.WithCancel(ctx)
 	stopCancel := context.AfterFunc(r.shutdown, cancelCall)
+	defer stopCancel()
+	defer cancelCall()
 	r.mu.Unlock()
 	if callCtx.Err() != nil {
-		stopCancel()
-		cancelCall()
 		return denied, nil
 	}
 	ok := handler(callCtx, request)
-	stopCancel()
-	cancelCall()
 	if r.beforePublish != nil {
 		r.beforePublish(ok)
 	}
 	r.mu.Lock()
-	closed := r.closed
-	shutdown := r.shutdown.Err() != nil
-	caller := ctx.Err() != nil
-	leaseActive := request.Operation != ipc.OperationAuthorize || (r.state != nil && r.state.Active())
+	deadline, leaseActive := time.Time{}, true
+	if request.Operation == ipc.OperationOTP || request.Operation == ipc.OperationAuthorize {
+		deadline, leaseActive = r.state.Deadline()
+	}
+	final := !r.closed && r.shutdown.Err() == nil && ctx.Err() == nil && ok && leaseActive
 	r.mu.Unlock()
-	if closed || shutdown || caller || !ok || !leaseActive {
+	if audited && !r.writeAudit(id, uid, request.Operation, final, deadline) {
+		r.closeUnderAudit()
+		final = false
+	}
+	if !final {
 		return denied, nil
 	}
 	return ipc.Response{OK: true}, nil
 }
 
+func (r *Runtime) writeAudit(id uint64, uid uint32, scope string, allow bool, deadline time.Time) bool {
+	result := "deny"
+	if allow {
+		result = "allow"
+	}
+	var expiry *time.Time
+	if allow && scope != ipc.OperationReady {
+		expiry = &deadline
+	}
+	data, err := json.Marshal(auditEvent{strconv.FormatUint(id, 16), uid, scope, result, expiry})
+	if err != nil || len(data)+1 > maxAuditBytes {
+		return false
+	}
+	data = append(data, '\n')
+	n, err := r.audit.Write(data)
+	return err == nil && n == len(data)
+}
+
+func (r *Runtime) closeUnderAudit() {
+	r.mu.Lock()
+	r.closed = true
+	r.shutdownCancel()
+	r.mu.Unlock()
+}
+
 // Close makes all new and in-flight calls fail closed; it is idempotent.
 func (r *Runtime) Close() {
-	if r == nil {
-		return
+	if r != nil {
+		r.auditMu.Lock()
+		r.closeUnderAudit()
+		r.auditMu.Unlock()
 	}
-	r.mu.Lock()
-	if !r.closed {
-		r.closed = true
-		r.shutdownCancel()
-	}
-	r.mu.Unlock()
 }
 
 func (r *Runtime) handleReady(ctx context.Context, request ipc.Request) bool {

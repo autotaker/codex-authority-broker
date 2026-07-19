@@ -1,0 +1,60 @@
+name: source-free release artifact
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  attestations: write
+  id-token: write
+  artifact-metadata: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache: false
+      - name: Build and verify source-free archive
+        env:
+          ARCHIVE: codex-authority-linux-amd64.tar.gz
+        run: |
+          set -eu
+          rm -rf staging verify "$ARCHIVE" SHA256SUMS
+          mkdir -p staging/bin staging/deploy/pam staging/deploy/sudo staging/deploy/systemd verify
+          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -o staging/bin/codex-authority-broker ./cmd/codex-authority-broker
+          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -o staging/bin/codex-authority ./cmd/codex-authority
+          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -o staging/bin/codex-authority-sudo ./cmd/codex-authority-sudo
+          install -m 0644 deploy/pam/codex-authority staging/deploy/pam/codex-authority
+          install -m 0644 deploy/sudo/codex-authority staging/deploy/sudo/codex-authority
+          install -m 0644 deploy/systemd/codex-authority-broker.service staging/deploy/systemd/codex-authority-broker.service
+          (cd staging && sha256sum bin/codex-authority bin/codex-authority-broker bin/codex-authority-sudo deploy/pam/codex-authority deploy/sudo/codex-authority deploy/systemd/codex-authority-broker.service | LC_ALL=C sort > SHA256SUMS)
+          SOURCE_DATE_EPOCH="$(git show -s --format=%ct "$GITHUB_SHA")"
+          export SOURCE_DATE_EPOCH
+          tar --sort=name --format=gnu --mtime="@${SOURCE_DATE_EPOCH}" --owner=0 --group=0 --numeric-owner -cf - -C staging SHA256SUMS bin/codex-authority bin/codex-authority-broker bin/codex-authority-sudo deploy/pam/codex-authority deploy/sudo/codex-authority deploy/systemd/codex-authority-broker.service | gzip -n > "$ARCHIVE"
+          printf '%s\n' SHA256SUMS bin/codex-authority bin/codex-authority-broker bin/codex-authority-sudo deploy/pam/codex-authority deploy/sudo/codex-authority deploy/systemd/codex-authority-broker.service > expected-manifest
+          tar -tzf "$ARCHIVE" | LC_ALL=C sort > actual-manifest
+          cmp expected-manifest actual-manifest
+          if tar -tvzf "$ARCHIVE" | awk '$1 !~ /^-/{exit 1}'; then :; else exit 1; fi
+          if grep -E '(^/|(^|/)\.\.(/|$)|(^|/)\.|\.(go|mod|sum)$|(^|/)\.git(/|$)|(^|/)tasks(/|$)|(^|/)backlog\.json$|seed|credential|token|key)' actual-manifest; then exit 1; fi
+          tar -xzf "$ARCHIVE" -C verify --no-same-owner --no-same-permissions
+          (cd verify && sha256sum -c SHA256SUMS)
+          cp verify/SHA256SUMS SHA256SUMS
+          rm -f expected-manifest actual-manifest
+      - name: Attest archive provenance
+        uses: actions/attest@f7c74d28b9d84cb8768d0b8ca14a4bac6ef463e6 # v4.2.0
+        with:
+          subject-path: codex-authority-linux-amd64.tar.gz
+      - name: Upload verified artifact
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: codex-authority-linux-amd64
+          path: |
+            codex-authority-linux-amd64.tar.gz
+            SHA256SUMS
+          if-no-files-found: error
