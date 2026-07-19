@@ -28,9 +28,15 @@ Stop and classify as **requirement / implementation-blocking** before an E2E
 run if any Task split-stop condition is true: the identity cannot be obtained
 only from fixed socket metadata, equal nonzero UID/GID cannot be enforced,
 groups/GID/UID cannot be irreversibly dropped before connect, peer authority
-rules conflict, a second socket or seed disclosure is needed, forecast exceeds
-1350 cumulative production SLOC, or the real isolated E2E/rollback fixture is
-unavailable. Root must never be accepted as authority client and SO_PEERCRED
+rules conflict, a second socket or seed disclosure is needed, or the real
+isolated E2E/rollback fixture is unavailable. The 1350 trigger fired and is
+closed only by the approved remeasurement: immutable baseline 1253, net
+production +145, cumulative 1398. From that measured four-file draft the
+additional production allowance is zero. Any added production line, net delta
+above +145, cumulative above 1398, use of nominal headroom below target 1400,
+compression, unowned path, or inconsistent TASK/PLAN/QA arithmetic stops
+before further DEV and requires split/replan. Reaching 1450 is always
+forbidden. Root must never be accepted as authority client and SO_PEERCRED
 must not be bypassed.
 
 ## Acceptance matrix
@@ -46,7 +52,7 @@ must not be bypassed.
 | Fail-closed lifecycle | In separate runs: precise lease-expiry boundary, broker stop, fresh broker restart, socket/helper state inspection; next actual sudo invocation each time. | The next sudo fails in all three cases. Allow state never survives PAM, sudo, socket, helper, or new daemon process. | Implementation unless lifecycle action was not actually applied. |
 | Output/redaction | Capture bounded stdout/stderr and fixture logs for allow and each denial; secret-scanner/pattern inspection using known values only without printing them. | Allow output is empty; denials are bounded/redacted. Seed, OTP, lease, UID metadata, internal errors, credentials do not occur in results/logs. | Implementation/security regression. |
 | Host rollback | Before fixture, hash host passwd/group/shadow/gshadow/sudoers/PAM targets and capture required directory listings; compare exactly after namespace exit. Validate fixture PAM and sudoers syntax inside namespace. | All hashes/listings exactly match after exit; no live workstation PAM/sudoers/identity mutation; syntax is valid in fixture. | Environment/fixture if no host mutation but isolation cannot be established; implementation/regression if host state changes. |
-| Code-size and v1 scope | `git diff --check`; production SLOC measurement on only the two contract production paths, baseline/cumulative calculation; inspect Task metadata and changed paths. | Expected production delta is within +55 forecast, cumulative is at most 1400, hard guard 1450 never crossed; forecast >1350 triggers stop/replan. No push/v2 work and no excluded production additions. | Requirement/process boundary (or scope regression), not an E2E implementation verdict. |
+| Code-size and v1 scope | `git diff --check`; production SLOC measurement on only the two contract production paths, baseline/cumulative calculation; inspect Task metadata and changed paths. | Measure only the two contract production paths against baseline 1253. Net production delta is at most +145 and cumulative at most 1398; 1400 is a ceiling, not a +2 allowance; additional production allowance is zero; hard guard 1450 is not approached or crossed. Exactly the same four candidate paths remain owned, with no push/v2/excluded additions. | Requirement/process boundary (or scope regression), not an E2E implementation verdict. |
 | Full quality gate | `gofmt`/format check, `go vet`, race-enabled relevant tests, full test suite, `make check`, and scoped diff inspection. | All pass; no unrelated edits, generated drift, secret logging, or Git operation by child agents. | Classify tool/dependency/namespace failures as environment first; reproducible behavioral failures by affected acceptance row. |
 
 ## Execution sequence and evidence record
@@ -117,13 +123,23 @@ prior handoff's “PLAN absent” wait is superseded by this reconciliation.
 | Lifecycle/no cache | Plan retains existing live/no-cache, expiry, unavailable, restart tests and mandates actual sudo failure at exact expiry, broker stop, and fresh restart; new ready/TOTP is required for another allow. | Aligned. |
 | Output/redaction | Exact silent allow and bounded `request denied\n` denial are specified; fixture must capture redacted command/status/count evidence and no secret/identity/internal metadata. | Aligned. |
 | Host rollback | Plan requires tmpfs `/etc` and `/run`, `visudo`, and exact before/after hashes/listings of the specified host identity/sudo/PAM state, plus cleanup evidence. | Aligned. Live-host mutation remains prohibited. |
-| SLOC/v1 scope and gates | PLAN confines candidate implementation to four Go paths, counts executable nonblank/non-comment production lines only in the two contract production files, preserves 1253/+55/1308, replan 1350, hard 1450, and explicitly excludes push/v2 and all Task exclusions. | Aligned. QA must treat excluded-path changes or guard breach as scope/requirement-process evidence, not silently waive them. |
+| SLOC/v1 scope and gates | PLAN confines candidate implementation to four Go paths, counts executable nonblank/non-comment production lines only in the two contract production files, preserves 1253/+145/1398, records that the 1350 trigger was exercised and closed by the approved remeasurement, permits zero further production, retains target 1400 and hard 1450, and explicitly excludes push/v2 and all Task exclusions. | Aligned after numeric amendment. QA must treat any production increase, excluded-path change, compression, or metadata inconsistency as a requirement/process block that E2E PASS cannot waive. |
 
 No acceptance mismatch was found. Two safety qualifications must remain visible
 at execution: (1) the fixed `/run` parent ownership/non-writability is a
 mandatory prerequisite to the pathname TOCTOU conclusion; and (2) test seams
 may prove forced drop failures but cannot replace the real valid irreversible
 handoff and actual TOTP/PAM/sudo fixture.
+
+### Remeasurement revision
+
+An independent TASK-first QA recheck approved only the numeric resource
+amendment from `+55 / 1308 / trigger 1350` to measured `+145 / 1398` with
+zero further production allowance. Acceptance, authority, threat model, four
+owned paths, execution modes, and the live isolated E2E are unchanged. A
+missing reproducible count, baseline mismatch, net above +145, cumulative
+above 1398, any additional production line/path, compression, or inconsistent
+contract arithmetic is fail-closed requirement/process evidence.
 
 ### DEV-readiness verdict
 

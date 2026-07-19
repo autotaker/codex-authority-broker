@@ -23,18 +23,18 @@
   },
   "wave": {
     "baseline_production_sloc": 1253,
-    "expected_added_production_sloc": 55,
-    "expected_cumulative_production_sloc": 1308,
+    "expected_added_production_sloc": 145,
+    "expected_cumulative_production_sloc": 1398,
     "target_cumulative_sloc": 1500,
     "hard_cumulative_sloc": 1800,
-    "target_reserve_sloc": 192,
-    "hard_reserve_sloc": 492,
+    "target_reserve_sloc": 102,
+    "hard_reserve_sloc": 402,
     "measurement_source": "/tmp/task0009-events-frozen.jsonl; sha256 abe31c9da1fbcfd32daef6013a9ce58063ccbb086265b4760ca20a22962af09b; 389 lines",
     "push_to_v2_decision": "selected (user-confirmed v1 scope): GitHub push capability is dropped from v1; former TASK-0010 (+130) and TASK-0011 (+153) remain deferred-v2, executable:false, and contribute zero v1 production SLOC while the dedicated socket/PAM identity handoff is the v1 blocker",
-    "formula": "1253 actual merged baseline after TASK-0015 (+278), TASK-0016 (+15), and TASK-0008 (+38) + TASK-0009 zero-SLOC measurement = 1253; planned TASK-0017 v1 blocker forecast +55 yields projected cumulative 1308; user-confirmed v1 push drop leaves former TASK-0010 (+130) and TASK-0011 (+153) as deferred-v2 zero-v1-SLOC reserves, and TASK-0012 freezes the post-TASK-0017 actual measurement rather than treating the +55 forecast as actual",
+    "formula": "1253 actual merged baseline after TASK-0015 (+278), TASK-0016 (+15), and TASK-0008 (+38) + TASK-0009 zero-SLOC measurement = 1253; TASK-0017 stopped at the 1350 trigger and was independently remeasured at net +145, projected cumulative 1398, with zero further production allowance; user-confirmed v1 push drop leaves former TASK-0010 (+130) and TASK-0011 (+153) as deferred-v2 zero-v1-SLOC reserves, and TASK-0012 freezes the post-TASK-0017 actual measurement rather than treating the +145 forecast as actual",
     "owner_lineage": [
       "TASK-0009 measurement PASS+merge and user-confirmed v1 push drop",
-      "TASK-0017 planned v1 blocker: dedicated socket ownership and PAM peer identity handoff (+55 forecast; actual pending)",
+      "TASK-0017 planned v1 blocker: dedicated socket ownership and PAM peer identity handoff (approved remeasurement +145; projected 1398; actual pending)",
       "TASK-0012 post-TASK-0017 frozen actual measurement gate",
       "MILESTONE-audit-attestation",
       "MILESTONE-manual-canary-rollback"
@@ -269,10 +269,10 @@
       "executable": true,
       "depends_on": ["TASK-0008", "TASK-0015", "TASK-0016"],
       "baseline_production_sloc": 1253,
-      "expected_production_sloc": 55,
-      "expected_cumulative_production_sloc": 1308,
+      "expected_production_sloc": 145,
+      "expected_cumulative_production_sloc": 1398,
       "target_cumulative_cap": 1400,
-      "projected_cap_trigger_sloc": 1350,
+      "projected_cap_trigger_sloc": 1398,
       "hard_cumulative_guard": 1450,
       "production_paths": ["cmd/codex-authority-broker/main.go", "cmd/codex-authority-sudo/main.go"],
       "test_paths": ["cmd/codex-authority-broker/main_test.go", "cmd/codex-authority-sudo/main_test.go", "deploy/sudo/codex-authority_test.go"],
@@ -281,8 +281,8 @@
       "lap_1": "With approved PLAN and TASK-first QA_PLAN, make the broker create the fixed socket for the configured dedicated nonzero equal UID/GID and make the PAM helper derive that identity only from the fixed root-directory socket metadata, permanently drop supplementary groups/GID/UID before its one authorize call, then run focused and isolated real TOTP/PAM/sudo tests.",
       "lap_2": "Exceptional only for one or two bounded findings requiring no redesign. Independent REVIEW and QA each verify socket ownership and replacement resistance, irreversible identity drop before transport, SO_PEERCRED denial, live/no-cache sudo, broker-stop/restart denial, redaction, rollback, full/race/vet/format/diff checks, and Main-only Git.",
       "exclusions": ["trusting PAM_RUSER, PAM_USER, environment, stdin, or caller-selected UID/GID", "allowing UID 0", "multiple authority sockets", "push or GitHub credentials", "installer or live-host PAM mutation", "audit", "attestation", "release", "canary"],
-      "split_stop_rule": "Stop before DEV if identity cannot be derived from a fixed-path socket beneath a non-writable root-owned directory, the dedicated identity cannot require equal nonzero UID/GID, groups/GID/UID cannot be irreversibly dropped before connect, broker and PAM peers need different authority rules, a second socket or seed disclosure is required, forecast exceeds 1350 cumulative, or the real isolated E2E/rollback fixture is unavailable; never bypass SO_PEERCRED or accept root as the authority client.",
-      "measurement_lineage": "The post-TASK-0009 real E2E accepted ready/OTP/authorize for UID 1000 only after a fixture chown; production broker omitted ipc.Config.Access. Real PAM then launched the helper as UID 0, which the single nonzero allowed_uid correctly rejected. A root-peer retry could not start because seed parsing correctly rejects UID 0. Forecast +55 covers broker Access wiring and bounded socket-metadata identity-drop logic, not test throughput.",
+      "split_stop_rule": "Stop before DEV if identity cannot be derived from a fixed-path socket beneath a non-writable root-owned directory, the dedicated identity cannot require equal nonzero UID/GID, groups/GID/UID cannot be irreversibly dropped before connect, broker and PAM peers need different authority rules, a second socket or seed disclosure is required, measured production exceeds +145 or cumulative 1398, any further production line/path is required, or the real isolated E2E/rollback fixture is unavailable; target 1400 is not extra allowance, never bypass SO_PEERCRED or accept root as the authority client, and 1450 remains absolute.",
+      "measurement_lineage": "The post-TASK-0009 real E2E accepted ready/OTP/authorize for UID 1000 only after a fixture chown; production broker omitted ipc.Config.Access. Real PAM then launched the helper as UID 0, which the single nonzero allowed_uid correctly rejected. A root-peer retry could not start because seed parsing correctly rejects UID 0. The initial +55 forecast omitted the readable identity-hook, fixed-path metadata, and irreversible-drop boundary. Main stopped DEV at 1350; independent remeasurement found net +145 and cumulative 1398 across the unchanged four paths, with zero further production allowance.",
       "later_reserve_eligibility": "TASK-0012 and later audit/attestation/manual-canary work remain blocked until this Task passes, merges, and its actual SLOC/E2E evidence is available.",
       "contract_path": "tasks/TASK-0017/TASK.md"
     },
@@ -344,9 +344,9 @@
       "status": "planned",
       "executable": true,
       "depends_on": ["TASK-0017"],
-      "baseline_production_sloc": 1308,
+      "baseline_production_sloc": 1398,
       "expected_production_sloc": 0,
-      "expected_cumulative_production_sloc": 1308,
+      "expected_cumulative_production_sloc": 1398,
       "target_cumulative_cap": 1500,
       "projected_cap_trigger_sloc": 1495,
       "hard_cumulative_guard": 1800,
@@ -354,13 +354,13 @@
       "test_paths": ["tasks/TASK-0012/MEASUREMENT.md"],
       "entrypoint": null,
       "fixture_elevation_needs": "Read-only frozen post-TASK-0017 v1 event snapshot; no elevation, network, product fixture, or operational-log write.",
-      "lap_1": "After TASK-0017 PASS+merge, freeze the post-TASK-0017 v1 snapshot and regenerate historical/product SLOC, test LOC, stage, cycle, active/wait, retry, null, and raw/effective correction evidence; record TASK-0017's actual production delta rather than substituting its +55 forecast, then reconcile the actual cumulative value against target 1500 and hard 1800.",
+      "lap_1": "After TASK-0017 PASS+merge, freeze the post-TASK-0017 v1 snapshot and regenerate historical/product SLOC, test LOC, stage, cycle, active/wait, retry, null, and raw/effective correction evidence; record TASK-0017's actual production delta rather than substituting its +145 remeasured forecast, then reconcile the actual cumulative value against target 1500 and hard 1800.",
       "lap_2": "Independent REVIEW and QA each regenerate the frozen post-TASK-0017 actual evidence and run the canonical correction and repository-native full checks; prove TASK-0010/TASK-0011 remain non-executable v2 reserve and no later milestone receives DEV detail; main owns Git.",
       "exclusions": ["all product/test implementation", "TASK-0010/TASK-0011 push implementation", "audit", "attestation", "release", "installer", "canary", "editing canonical log", "enabling later DEV"],
       "split_stop_rule": "Stop on canonical defects, unexplained cap drift, actual above 1500, any hard-limit risk, missing independent regeneration, or inability to close REVIEW/QA in Lap 2; later reserve remains blocked.",
-      "measurement_lineage": "The pre-TASK-0017 merged baseline is 1253 and the planned TASK-0017 forecast is +55 (projected 1308), but both are planning evidence until that Task passes and merges. Then apply TASK-0009's exact correction predicate and raw/effective provenance to a frozen post-TASK-0017 v1 stream and measure the actual cumulative baseline plus zero Task-0012 delta without fixed throughput, forecast substitution, or reserve borrowing.",
+      "measurement_lineage": "The pre-TASK-0017 merged baseline is 1253 and the approved TASK-0017 remeasurement is +145 (projected 1398), but both are planning evidence until that Task passes and merges. Then apply TASK-0009's exact correction predicate and raw/effective provenance to a frozen post-TASK-0017 v1 stream and measure the actual cumulative baseline plus zero TASK-0012 delta without fixed throughput, forecast substitution, or reserve borrowing.",
       "later_reserve_eligibility": "Only after independent REVIEW PASS, independent QA PASS, and main merge may MILESTONE-audit-attestation then MILESTONE-manual-canary-rollback receive PLAN; both remain non-executable beforehand.",
-      "replan_reason": "TASK-0009 measured 1253 and TASK-0017 is the planned v1 blocker with a readable +55 forecast (projected 1308); after its PASS+merge this gate must freeze and measure actual post-TASK-0017 production SLOC. The user-confirmed v1 push drop keeps former TASK-0010/TASK-0011 forecasts (+130/+153) deferred-v2 and zero v1 SLOC, so this remains the direct zero-SLOC v1 gate before later reserve work.",
+      "replan_reason": "TASK-0009 measured 1253 and TASK-0017 is the planned v1 blocker with an independently approved +145 remeasurement (projected 1398); after its PASS+merge this gate must freeze and measure actual post-TASK-0017 production SLOC. The user-confirmed v1 push drop keeps former TASK-0010/TASK-0011 forecasts (+130/+153) deferred-v2 and zero v1 SLOC, so this remains the direct zero-SLOC v1 gate before later reserve work.",
       "contract_path": "tasks/TASK-0012/TASK.md"
     }
   ],
@@ -436,7 +436,7 @@
       "automated installer/rollback executable; retain declarative units and manual verified install/rollback",
       "move GitHub push to v2, leaving TOTP full-sudo authority as v1"
     ],
-    "later_reserve": "TASK-0009 measured 1253 actual and planned TASK-0017 forecasts +55, leaving a projected 192 to target 1500 and 492 to hard 1800; actual post-TASK-0017 measurement remains required. The user-confirmed v1 push drop keeps former TASK-0010/TASK-0011 forecasts (+130/+153) in non-executable v2 reserve with zero v1 SLOC. TASK-0012 follows TASK-0017 as the frozen post-TASK-0017 actual zero-SLOC gate, then TASK-0012 PASS+merge -> MILESTONE-audit-attestation -> MILESTONE-manual-canary-rollback; no hard-limit borrowing, compression, or silent reserve use."
+    "later_reserve": "TASK-0009 measured 1253 actual and TASK-0017 is independently remeasured at +145/projected 1398, leaving projected 102 to target 1500 and 402 to hard 1800; actual post-TASK-0017 measurement remains required. The user-confirmed v1 push drop keeps former TASK-0010/TASK-0011 forecasts (+130/+153) in non-executable v2 reserve with zero v1 SLOC. TASK-0012 follows TASK-0017 as the frozen post-TASK-0017 actual zero-SLOC gate, then TASK-0012 PASS+merge -> MILESTONE-audit-attestation -> MILESTONE-manual-canary-rollback; no hard-limit borrowing, compression, or silent reserve use."
   },
   "acceptance_checks": [
     "The user-approved Disposition 2 atomically updates backlog, terminates TASK-0007, creates TASK-0013/TASK-0014, and propagates TASK-0008 through TASK-0009; this amendment adds planned TASK-0017 as the v1 blocker and places TASK-0012 after its frozen actual measurement without enabling push implementation.",
@@ -445,7 +445,7 @@
     "TASK-0006 production SLOC delta is exactly 0 and cumulative measured baseline remains exactly 751.",
     "TASK-0009 and TASK-0012 apply the deterministic same-task/same-lap/earlier-file/smaller-sequence correction predicate before effective values.",
     "Every independent REVIEW and QA runs the focused checks plus GOCACHE=\"$(mktemp -d)\" go test ./..., gofmt, git diff --check, and jq JSON validation as applicable.",
-    "TASK-0017's +55 / projected 1308 forecast is not an implementation or E2E result; forecasts, approved post-trigger stops, target/hard reserves (1500/1800), mandatory controls, exact shedding order, and no-compression rules remain binding."
+    "TASK-0017's approved +145 / projected 1398 remeasurement is not an implementation or E2E result; zero further production allowance, target/hard reserves (1500/1800), mandatory controls, exact shedding order, and no-compression rules remain binding."
   ],
   "human_gate_evidence": {
     "review_checklist": "Record independent contract/index comparison, fixture and focused/full checks, correction predicate, production-SLOC count, caps/reserves, and no-compression/guardrail compliance.",
