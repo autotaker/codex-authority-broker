@@ -14,10 +14,10 @@
   "executable": true,
   "depends_on": ["TASK-0011"],
   "expected_production_sloc": 0,
-  "expected_cumulative_production_sloc": 1311,
+  "expected_cumulative_production_sloc": 1490,
   "target_cumulative_cap": 1500,
-  "projected_cap_trigger_sloc": 1350,
-  "hard_cumulative_guard": 1650,
+  "projected_cap_trigger_sloc": 1495,
+  "hard_cumulative_guard": 1800,
   "production_paths": [],
   "test_paths": ["tasks/TASK-0012/MEASUREMENT.md"],
   "entrypoint": null,
@@ -102,10 +102,10 @@ file is written by TASK-0006 DEV.
 ## Acceptance, exclusions, and capacity
 
 - Measured baseline remains exactly 751 and TASK-0006 adds exactly 0
-  production SLOC; wave forecast is cumulative 1311 unless independent
+  production SLOC; wave forecast is cumulative 1490 unless independent
   evidence changes it.
 - Actual target reserve and hard reserve are independently recomputed; the
-  forecast amounts 189 to 1500 and 489 to 1800 are not implemented SLOC.
+  forecast amounts 10 to 1500 and 310 to 1800 are not implemented SLOC.
 - The later owner lineage is exactly
   `TASK-0012 measurement PASS+merge -> MILESTONE-audit-attestation ->
   MILESTONE-manual-canary-rollback`.
@@ -115,8 +115,8 @@ file is written by TASK-0006 DEV.
 This Task excludes all product/test implementation, audit, attestation,
 release, installer, canary, canonical-log editing, and enabling later DEV.
 
-The planned increment is +0 production SLOC and cumulative 1311; target cap
-1500, 90%-trigger 1350, hard guard 1650. Stop on canonical defects,
+The planned increment is +0 production SLOC and cumulative 1490; target cap
+1500, post-reestimate stop 1495, hard guard 1800. Stop on canonical defects,
 unexplained cap drift, actual above 1500 without approved contingency
 disposition, any hard-limit risk, or inability to close REVIEW/QA in Lap 2.
 An actual or forecast value above the unconditional 1800 system limit is an

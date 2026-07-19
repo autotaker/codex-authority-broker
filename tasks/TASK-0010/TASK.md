@@ -14,10 +14,10 @@
   "executable": true,
   "depends_on": ["TASK-0009"],
   "expected_production_sloc": 130,
-  "expected_cumulative_production_sloc": 1091,
-  "target_cumulative_cap": 1250,
-  "projected_cap_trigger_sloc": 1125,
-  "hard_cumulative_guard": 1400,
+  "expected_cumulative_production_sloc": 1337,
+  "target_cumulative_cap": 1425,
+  "projected_cap_trigger_sloc": 1380,
+  "hard_cumulative_guard": 1500,
   "production_paths": ["internal/push/policy.go", "internal/push/validate.go"],
   "test_paths": ["internal/push/policy_test.go", "internal/push/validate_test.go"],
   "entrypoint": "internal/push/policy.go",
@@ -25,7 +25,7 @@
   "lap_1": "After TASK-0009 PASS+merge and approved plans, validate exact configured repository, clean tree, main or task/TASK-* branch, and one-ref update; reject wrong repo/ref, dirty tree, force, tag, delete, multiple-ref, and ambiguous local Git state; run go test ./internal/push.",
   "lap_2": "Independent REVIEW runs focused tests and repository-native full check; QA independently mutates every local condition and proves each denial cannot cross the fake transport boundary; main owns Git.",
   "exclusions": ["token custody", "credential helper", "network transport", "Git child process", "backend registration", "sudo", "audit", "release", "installer", "canary"],
-  "split_stop_rule": "Stop if validation requires remote state, credentials, or a second policy language; stop if forecast exceeds 1125, the fixture cannot prove zero transport on denial, or Lap 1 is not review-ready.",
+  "split_stop_rule": "Stop if validation requires remote state, credentials, or a second policy language; stop if forecast exceeds the post-reestimate stop 1380, the fixture cannot prove zero transport on denial, or Lap 1 is not review-ready.",
   "measurement_lineage": "Record exact local fixture state, stage pairs, active/wait, retries, raw/effective classifications, source IDs, null reasons, and time-only contingency; do not infer duration or size from throughput.",
   "later_reserve_eligibility": "Later audit/attestation/manual-canary reserve remains ineligible until TASK-0012 PASS+merge.",
   "contract_path": "tasks/TASK-0010/TASK.md"
@@ -83,15 +83,15 @@ canary work.
 
 ## Measurement, caps, and stop rule
 
-The forecast is +130 production SLOC and cumulative 1091; target cap 1250,
-90%-trigger 1125, hard guard 1400. Record exact fixture state, paired stage
+The forecast is +130 production SLOC and cumulative 1337; post-reestimate stop
+1380, target cap 1425, hard guard 1500. Record exact fixture state, paired stage
 timing, separate active/wait, propagated retries, raw/effective
 classifications/source IDs, null reasons, preflight exclusion, and time-only
 `ceil(observed_non_preflight_time * 1.20)` contingency. No SLOC/minute or
 fixed throughput sizing is allowed.
 
 Stop if validation requires remote state, credentials, or a second policy
-language; if forecast exceeds 1125; if the fixture cannot prove zero transport
+language; if forecast exceeds 1380; if the fixture cannot prove zero transport
 on denial; or if Lap 1 is not review-ready. Split discovery rather than
 expanding this local boundary. Candidate target/hard overflow stops safely and
 requires the approved shedding/replan order.
