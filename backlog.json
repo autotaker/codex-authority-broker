@@ -1,10 +1,39 @@
 {
-  "schema_version": 5,
+  "schema_version": 8,
   "generated_for": "TASK-0006",
   "planning_basis": {
     "observed_pr": "Completed TASK-0001, TASK-0003, TASK-0004, and TASK-0005 cycles measured from the canonical 72-event snapshot.",
+    "baseline_production_sloc": 751,
+    "baseline_formula": "98 + 135 + 367 + 151 = 751",
+    "baseline_source": "/home/ubuntu/git/agent-harness-work/lap30/events.jsonl",
+    "canonical_completed_tasks": ["TASK-0001", "TASK-0003", "TASK-0004", "TASK-0005"],
     "strategy": "Rolling-wave planning: only detailed tasks are executable; reserves are non-executable.",
-    "production_loc_definition": "Count nonblank, non-comment executable-source lines in shipped, installed, or runtime/installation source: non-test .go and shipped .py, .sh, or .c. Excludes tests, planning/review documents, task/operator docs, workflows, declarative systemd/PAM/sudoers configuration, generated, and vendor."
+    "production_loc_definition": "Count nonblank, non-comment executable-source lines in shipped, installed, or runtime/installation source: non-test .go and shipped .py, .sh, or .c. Excludes tests, planning/review documents, task/operator docs, workflows, declarative systemd/PAM/sudoers configuration, generated, and vendor.",
+    "measurement_rules": {
+      "unmatched_timing": "null, not zero",
+      "stage_pairing": "same task, lap, stage, and attempt start-terminal pairs only",
+      "active_wait": "record active_ms and wait_ms as separate observations; never sum them to invent elapsed time",
+      "retries": "maximum propagated task-level retry counter across the complete cycle",
+      "classifications": "retain raw records with source_event_id and nullable superseded_by; effective values are only correction-validated unsuperseded records",
+      "preflight": "exclude stage=preflight from cycle and stage totals; preflight failure is not_started",
+      "throughput": "no SLOC/minute, average velocity, regression, or other fixed throughput assumption"
+    }
+  },
+  "wave": {
+    "baseline_production_sloc": 751,
+    "expected_added_production_sloc": 560,
+    "expected_cumulative_production_sloc": 1311,
+    "target_cumulative_sloc": 1500,
+    "hard_cumulative_sloc": 1800,
+    "target_reserve_sloc": 189,
+    "hard_reserve_sloc": 489,
+    "formula": "751 + 90 + 120 + 0 + 130 + 220 + 0 = 1311",
+    "owner_lineage": [
+      "TASK-0012 measurement PASS+merge",
+      "MILESTONE-audit-attestation",
+      "MILESTONE-manual-canary-rollback"
+    ],
+    "later_reserve_rule": "Neither later milestone receives PLAN, branch, DEV, PR-ready detail, or production allocation until TASK-0012 independent REVIEW and QA both PASS and it merges."
   },
   "tasks": [
     {
@@ -21,9 +50,7 @@
       "title": "TOTP replay, rate limits, and concurrency",
       "status": "completed",
       "executable": true,
-      "depends_on": [
-        "TASK-0001"
-      ],
+      "depends_on": ["TASK-0001"],
       "estimated_delivery_minutes": 30,
       "cumulative_production_loc_ceiling": 430
     },
@@ -32,9 +59,7 @@
       "title": "versioned SO_PEERCRED IPC",
       "status": "completed",
       "executable": true,
-      "depends_on": [
-        "TASK-0003"
-      ],
+      "depends_on": ["TASK-0003"],
       "estimated_delivery_minutes": 30,
       "cumulative_production_loc_ceiling": 650
     },
@@ -43,9 +68,7 @@
       "title": "Codex CLI, socket access, and redaction",
       "status": "completed",
       "executable": true,
-      "depends_on": [
-        "TASK-0004"
-      ],
+      "depends_on": ["TASK-0004"],
       "estimated_delivery_minutes": 30,
       "cumulative_production_loc_ceiling": 820
     },
@@ -54,141 +77,239 @@
       "title": "measurement and rolling-wave replanning gate",
       "status": "planned",
       "executable": true,
-      "depends_on": [
-        "TASK-0005"
-      ],
-      "estimated_delivery_minutes": 30,
-      "cumulative_production_loc_ceiling": 820,
-      "production_loc_added": 0
+      "depends_on": ["TASK-0005"],
+      "expected_production_sloc": 0,
+      "expected_cumulative_production_sloc": 751,
+      "target_cumulative_cap": 820,
+      "hard_cumulative_guard": 820,
+      "production_sloc_added": 0,
+      "contract_path": "tasks/TASK-0006/TASK.md"
     },
     {
       "id": "TASK-0007",
-      "title": "Per-sudo live lease check and no cache",
+      "title": "production daemon/backend assembly and bounded seed",
       "status": "planned",
       "executable": true,
-      "depends_on": [
-        "TASK-0006"
-      ],
-      "estimated_delivery_minutes_minimum": 76,
-      "estimated_delivery_minutes_upper": null,
-      "estimate_basis": "TASK-0004 post-preflight cycle: ceil((3779000 / 60000) * 1.20) = 76; upper bound unknown",
-      "cumulative_production_loc_ceiling": 950,
-      "production_loc_reserve_increment": 199,
+      "depends_on": ["TASK-0006"],
+      "expected_production_sloc": 90,
+      "expected_cumulative_production_sloc": 841,
+      "target_cumulative_cap": 950,
+      "projected_cap_trigger_sloc": 855,
+      "hard_cumulative_guard": 1050,
+      "production_paths": ["cmd/codex-authority-broker/main.go", "internal/backend/runtime.go"],
+      "test_paths": ["cmd/codex-authority-broker/main_test.go", "internal/backend/runtime_test.go"],
+      "entrypoint": "cmd/codex-authority-broker/main.go",
+      "fixture_elevation_needs": "Temporary Unix socket and root-owned mode-0600 seed fixture; isolated runner must simulate ownership/mode without broad host mutation; no real service installation.",
+      "lap_1": "After approved PLAN and QA_PLAN, confirm TASK-0006 merge, existing ready/otp protocol and client/daemon separation, then implement only the entrypoint and runtime assembly; run go test ./cmd/codex-authority ./cmd/codex-authority-broker ./internal/backend ./internal/ipc ./internal/lease and capture startup, ready/OTP, shutdown, restart, and existing-client regression evidence.",
+      "lap_2": "Independent REVIEW runs the focused suite and repository-native full check; QA independently exercises valid and missing/malformed/oversized/wrong-owner/wrong-mode seed, exact routing, redaction, shutdown, and fail-closed restart; main owns final checks and Git.",
+      "exclusions": ["persistent store/config framework", "sudo", "push", "GitHub credentials", "audit", "release", "installer", "canary", "changes to existing client or daemon path"],
+      "split_stop_rule": "Stop before DEV if the entrypoint plus one assembly boundary is incomplete, persistence is required, root ownership cannot be isolated, expected cumulative exceeds 855, or Lap 1 cannot produce a gate-ready candidate; split lifecycle from persistence and never defer seed/lifecycle into TASK-0008.",
+      "measurement_lineage": "Record production/test SLOC, paired stage timing, active/wait, propagated retries, raw/effective classifications, source event IDs, null reasons, preflight exclusion, and ceil(observed non-preflight time * 1.20) time contingency.",
+      "later_reserve_eligibility": "Later audit/attestation/manual-canary reserve remains ineligible until TASK-0012 PASS+merge.",
       "contract_path": "tasks/TASK-0007/TASK.md"
     },
     {
       "id": "TASK-0008",
-      "title": "Restricted non-force push and token custody",
+      "title": "sudo live check and no cache",
       "status": "planned",
       "executable": true,
-      "depends_on": [
-        "TASK-0007"
-      ],
-      "estimated_delivery_minutes_minimum": null,
-      "estimated_delivery_minutes_upper": null,
-      "estimate_basis": "unknown until the preflighted bare-repository and credential-injection design is approved; no fixed SLOC throughput",
-      "cumulative_production_loc_ceiling": 1400,
-      "production_loc_reserve_increment": 450,
+      "depends_on": ["TASK-0007"],
+      "expected_production_sloc": 120,
+      "expected_cumulative_production_sloc": 961,
+      "target_cumulative_cap": 1100,
+      "projected_cap_trigger_sloc": 990,
+      "hard_cumulative_guard": 1250,
+      "production_paths": ["cmd/codex-authority-sudo/main.go", "deploy/sudo/codex-authority"],
+      "test_paths": ["cmd/codex-authority-sudo/main_test.go", "deploy/sudo/codex-authority_test.go"],
+      "entrypoint": "cmd/codex-authority-sudo/main.go",
+      "fixture_elevation_needs": "Isolated Ubuntu sudo/PAM fixture, disposable dedicated identity, controlled clock/socket, and approved narrow elevation/rollback procedure; never mutate workstation sudo policy.",
+      "lap_1": "After TASK-0007 merge and approved plans, implement per-invocation live request and declarative timestamp-cache disablement; run go test ./cmd/codex-authority-sudo ./internal/ipc plus the isolated sudo fixture covering allow, expiry, daemon unavailable/restart, malformed/unauthorized reply, and two consecutive invocations.",
+      "lap_2": "Independent REVIEW runs focused tests and repository-native full check; QA uses the isolated elevated fixture to prove a live unexpired lease permits and every deny case fails closed with no cached reuse; main owns Git closure.",
+      "exclusions": ["daemon/backend assembly", "push", "GitHub credentials", "rich audit", "release", "installer", "packaging", "canary", "real workstation policy mutation"],
+      "split_stop_rule": "Classify not_started/environment_issue if the isolated elevated fixture or rollback proof is unavailable. Split before DEV if more than one client entrypoint and declarative policy is required, forecast exceeds 990, or platform/PAM differences cannot fit two laps; never weaken live-per-call or no-cache behavior.",
+      "measurement_lineage": "Record fixture/elevation waits separately, paired stage timing, active/wait, retries, raw/effective classifications, source IDs, null reasons, and time-only 20% contingency; no SLOC throughput sizing.",
+      "later_reserve_eligibility": "Later audit/attestation/manual-canary reserve remains ineligible until TASK-0012 PASS+merge.",
       "contract_path": "tasks/TASK-0008/TASK.md"
     },
     {
       "id": "TASK-0009",
-      "title": "Measurement and rolling-wave replanning gate",
+      "title": "first zero-SLOC measurement gate",
       "status": "planned",
       "executable": true,
-      "depends_on": [
-        "TASK-0008"
-      ],
-      "estimated_delivery_minutes_minimum": null,
-      "estimated_delivery_minutes_upper": null,
-      "estimate_basis": "zero-production measurement gate; duration is evidence-dependent",
-      "cumulative_production_loc_ceiling": 1400,
-      "production_loc_added": 0,
+      "depends_on": ["TASK-0008"],
+      "expected_production_sloc": 0,
+      "expected_cumulative_production_sloc": 961,
+      "target_cumulative_cap": 1100,
+      "projected_cap_trigger_sloc": 990,
+      "hard_cumulative_guard": 1250,
+      "production_paths": [],
+      "test_paths": ["tasks/TASK-0009/MEASUREMENT.md"],
+      "entrypoint": null,
+      "fixture_elevation_needs": "Read-only frozen canonical JSONL snapshot; no elevation, network, product fixture, or operational-log write.",
+      "lap_1": "After TASK-0007 and TASK-0008 merge, freeze the completed-event snapshot and regenerate provenance-complete historical plus new-wave SLOC/test/stage/active/wait/retry/raw/effective classification evidence, applying ceil(observed non-preflight time * 1.20) only to observable time.",
+      "lap_2": "Independent REVIEW and QA each run canonical parse/unique-ID/correction-edge checks, independently regenerate measurement and cap arithmetic, and run the repository-native full Go/format/diff checks; main owns Git. TASK-0010 speculative planning is invalidated if evidence changes its boundary.",
+      "exclusions": ["all product/test implementation", "audit", "attestation", "release", "installer", "canary", "editing canonical log"],
+      "split_stop_rule": "Stop on missing or contradictory canonical evidence, non-reproducible arithmetic, actual cumulative above 1100, or inability to independently regenerate in Lap 2; classify before retry and do not bypass TASK-0010.",
+      "measurement_lineage": "Use exactly four completed canonical task IDs, preserve null with reasons, validate every correction target earlier in file order and same task/lap with smaller sequence, retain raw source IDs and superseded_by, and derive effective values only after validation.",
+      "later_reserve_eligibility": "Audit/attestation/manual-canary reserve remains non-executable until TASK-0012 PASS+merge; no converted milestone remains simultaneously reserved and executable.",
       "contract_path": "tasks/TASK-0009/TASK.md"
+    },
+    {
+      "id": "TASK-0010",
+      "title": "local push policy and validation",
+      "status": "planned",
+      "executable": true,
+      "depends_on": ["TASK-0009"],
+      "expected_production_sloc": 130,
+      "expected_cumulative_production_sloc": 1091,
+      "target_cumulative_cap": 1250,
+      "projected_cap_trigger_sloc": 1125,
+      "hard_cumulative_guard": 1400,
+      "production_paths": ["internal/push/policy.go", "internal/push/validate.go"],
+      "test_paths": ["internal/push/policy_test.go", "internal/push/validate_test.go"],
+      "entrypoint": "internal/push/policy.go",
+      "fixture_elevation_needs": "Temporary worktree and local bare repository matrix; no network, credentials, child Git process, or elevation; denied cases must prove no fake transport boundary is crossed.",
+      "lap_1": "After TASK-0009 PASS+merge and approved plans, validate exact configured repository, clean tree, main or task/TASK-* branch, and one-ref update; reject wrong repo/ref, dirty tree, force, tag, delete, multiple-ref, and ambiguous local Git state; run go test ./internal/push.",
+      "lap_2": "Independent REVIEW runs focused tests and repository-native full check; QA independently mutates every local condition and proves each denial cannot cross the fake transport boundary; main owns Git.",
+      "exclusions": ["token custody", "credential helper", "network transport", "Git child process", "backend registration", "sudo", "audit", "release", "installer", "canary"],
+      "split_stop_rule": "Stop if validation requires remote state, credentials, or a second policy language; stop if forecast exceeds 1125, the fixture cannot prove zero transport on denial, or Lap 1 is not review-ready.",
+      "measurement_lineage": "Record exact local fixture state, stage pairs, active/wait, retries, raw/effective classifications, source IDs, null reasons, and time-only contingency; do not infer duration or size from throughput.",
+      "later_reserve_eligibility": "Later audit/attestation/manual-canary reserve remains ineligible until TASK-0012 PASS+merge.",
+      "contract_path": "tasks/TASK-0010/TASK.md"
+    },
+    {
+      "id": "TASK-0011",
+      "title": "token custody and system-Git non-force push",
+      "status": "planned",
+      "executable": true,
+      "depends_on": ["TASK-0010"],
+      "expected_production_sloc": 220,
+      "expected_cumulative_production_sloc": 1311,
+      "target_cumulative_cap": 1500,
+      "projected_cap_trigger_sloc": 1350,
+      "hard_cumulative_guard": 1650,
+      "production_paths": ["cmd/codex-authority-push/main.go", "internal/ipc/protocol.go", "internal/push/custody.go", "internal/push/system_git.go", "internal/backend/push_registration.go"],
+      "test_paths": ["cmd/codex-authority-push/main_test.go", "internal/ipc/protocol_test.go", "internal/push/custody_test.go", "internal/push/system_git_test.go", "internal/backend/push_registration_test.go"],
+      "entrypoint": "cmd/codex-authority-push/main.go",
+      "fixture_elevation_needs": "TASK-0007 handler seam and dedicated caller UID, local bare remote, fake short-lived GitHub App token provider, system-Git binary, credential-capture sentinel, live-lease fixture, no network and no elevation.",
+      "lap_1": "After TASK-0010 PASS+merge and approved plans, implement the bounded caller, OperationPush/PushRequest admission, backend registration and UID/live-lease/policy gates, in-memory token custody, and one system-Git single-ref non-force path; run go test ./cmd/codex-authority ./cmd/codex-authority-broker ./cmd/codex-authority-push ./internal/ipc ./internal/push ./internal/backend.",
+      "lap_2": "Independent REVIEW runs the focused suite, malformed/unknown-operation and credential-capture mutations, then repository-native full check; QA proves exactly one authorized push handler with correct UID, live lease, and TASK-0010 policy, and denies old client, wrong UID, malformed/expired authority, leak, force, and ambiguity cases before custody/Git; main owns Git.",
+      "exclusions": ["changes to cmd/codex-authority/main.go", "changes to cmd/codex-authority-broker/main.go", "generic IPC commands", "arbitrary refspec", "remote-OID prefetch", "force/tag/delete push", "sudo", "audit", "release", "installer", "canary"],
+      "split_stop_rule": "Stop before DEV if caller schema cannot stay bounded, SO_PEERCRED cannot distinguish configured UID, token injection leaks through a named channel, system Git cannot be captured deterministically, the five-unit forecast exceeds 1350, or remote OID/race diagnostics are required; shed optional diagnostics in order or split without weakening authorization, custody, schema, or non-force behavior.",
+      "measurement_lineage": "Forecast allocation is 35 caller + 45 protocol/schema + 40 registration/gates + 55 custody + 45 system-Git/redaction = 220, not throughput. Record stage pairs, active/wait, retries, raw/effective classifications, source IDs, null reasons, preflight exclusion, and time-only contingency.",
+      "later_reserve_eligibility": "Later audit/attestation/manual-canary reserve remains ineligible until TASK-0012 PASS+merge.",
+      "contract_path": "tasks/TASK-0011/TASK.md"
+    },
+    {
+      "id": "TASK-0012",
+      "title": "final zero-SLOC measurement and later-reserve gate",
+      "status": "planned",
+      "executable": true,
+      "depends_on": ["TASK-0011"],
+      "expected_production_sloc": 0,
+      "expected_cumulative_production_sloc": 1311,
+      "target_cumulative_cap": 1500,
+      "projected_cap_trigger_sloc": 1350,
+      "hard_cumulative_guard": 1650,
+      "production_paths": [],
+      "test_paths": ["tasks/TASK-0012/MEASUREMENT.md"],
+      "entrypoint": null,
+      "fixture_elevation_needs": "Read-only frozen completed TASK-0010/TASK-0011 event snapshot; no elevation, network, product fixture, or operational-log write.",
+      "lap_1": "After TASK-0011 merge, freeze the wave snapshot and regenerate full historical plus wave SLOC/test/time/active/wait/retry/classification evidence, reconcile actual capacity to target 1500 and hard 1800, and record eligibility evidence for later audit/attestation/manual-canary lineage.",
+      "lap_2": "Independent REVIEW and QA each regenerate evidence, run canonical correction and repository-native full Go/format/diff checks, validate actual target/hard reserve, and prove no later DEV is enabled; main owns Git.",
+      "exclusions": ["all product/test implementation", "audit", "attestation", "release", "installer", "canary", "editing canonical log", "enabling later DEV"],
+      "split_stop_rule": "Stop on canonical defects, unexplained cap drift, actual above 1500 without approved contingency disposition, any hard-limit risk, or inability to close REVIEW/QA in Lap 2; later reserve PLAN/DEV remains blocked until this gate passes and merges.",
+      "measurement_lineage": "Apply the exact TASK-0009 correction predicate and raw/effective provenance to the frozen stream; compare measured baseline and wave delta, preserve null reasons, and reconcile actual 1500/1800 capacities without fixed throughput.",
+      "later_reserve_eligibility": "Only after independent REVIEW PASS, independent QA PASS, and main merge may MILESTONE-audit-attestation then MILESTONE-manual-canary-rollback receive PLAN; both remain non-executable beforehand.",
+      "contract_path": "tasks/TASK-0012/TASK.md"
     }
   ],
   "future_milestones": [
     {
-      "id": "MILESTONE-audit-release",
-      "title": "audit and attested release reserve",
+      "id": "MILESTONE-audit-attestation",
+      "title": "minimal audit and source-free attestation reserve",
+      "status": "reserved",
       "executable": false,
-      "cumulative_production_loc_reserve": 1500,
-      "description": "Reserve only: future minimal audit, declarative bundle, and source-free attested release work.",
-      "eligible_for": "ineligible for PLAN/DEV/branch/PR until TASK-0009 passes REVIEW and QA and is merged."
+      "depends_on": ["TASK-0012"],
+      "production_paths": [],
+      "test_paths": [],
+      "expected_production_sloc": null,
+      "cumulative_production_sloc_reserve": 1500,
+      "description": "Non-executable later reserve for minimal external-trace audit and source-free attested artifact.",
+      "eligible_for": "ineligible for PLAN/DEV/branch/PR-ready detail until TASK-0012 independent REVIEW and QA PASS and merge."
     },
     {
-      "id": "MILESTONE-clean-canary",
-      "title": "clean canary reserve",
+      "id": "MILESTONE-manual-canary-rollback",
+      "title": "manual canary and rollback evidence reserve",
+      "status": "reserved",
       "executable": false,
-      "cumulative_production_loc_reserve": 1500,
-      "production_loc_added": 0,
-      "description": "Reserve only: future clean artifact canary and rollback evidence.",
-      "eligible_for": "ineligible for PLAN/DEV/branch/PR until TASK-0009 passes REVIEW and QA and is merged."
+      "depends_on": ["MILESTONE-audit-attestation"],
+      "production_paths": [],
+      "test_paths": [],
+      "expected_production_sloc": null,
+      "cumulative_production_sloc_reserve": 1500,
+      "description": "Non-executable later reserve retaining a manual verified canary/rollback runbook and evidence.",
+      "eligible_for": "ineligible for PLAN/DEV/branch/PR-ready detail until TASK-0012 and the audit/attestation owner gate pass."
     }
   ],
   "measurement_contract": {
     "required_fields": [
-      "planned_production_sloc",
-      "actual_production_sloc",
-      "cumulative_production_sloc",
-      "test_loc",
-      "plan_ms",
-      "plan_minutes",
-      "dev_ms",
-      "dev_minutes",
-      "review_ms",
-      "review_minutes",
-      "qa_ms",
-      "qa_minutes",
-      "ci_push_merge_ms",
-      "ci_push_merge_minutes",
-      "task_cycle_ms",
-      "task_cycle_minutes",
-      "active_ms",
-      "wait_ms",
-      "retries",
-      "raw_failure_classifications",
-      "effective_failure_classifications",
-      "source_event_ids",
-      "notes"
+      "planned_production_sloc", "actual_production_sloc", "cumulative_production_sloc", "test_loc",
+      "plan_ms", "plan_minutes", "dev_ms", "dev_minutes", "review_ms", "review_minutes", "qa_ms", "qa_minutes",
+      "ci_push_merge_ms", "ci_push_merge_minutes", "task_cycle_ms", "task_cycle_minutes", "active_ms", "wait_ms",
+      "retries", "raw_failure_classifications", "effective_failure_classifications", "source_event_ids", "notes"
     ],
     "rules": {
-      "preflight": "excluded from cycle and stage timing; a preflight failure means not_started",
-      "contingency": "apply ceil(observed non-preflight time * 1.20); null remains null and SLOC receives no multiplier",
-      "evidence": "derive next-wave sizing from observed completed cycles",
-      "sparse_evidence": "do not assume fixed SLOC throughput when evidence is sparse",
-      "conversion": "convert only the next 2-3 future milestones into detailed contracts",
-      "remeasurement": "insert the next measurement gate after those 2-3 tasks",
-      "corrections": "preserve raw records with source_event_id and superseded_by; derive effective classifications only from unsuperseded records",
-      "missing_values": "retain non-derivable numeric values as null with a reason; zero requires explicit evidence"
+      "preflight": "excluded from cycle and stage timing; preflight failure means not_started",
+      "contingency": "ceil(observed non-preflight time * 1.20); null remains null and SLOC receives no multiplier",
+      "evidence": "derive next-wave sizing from observed completed cycles and qualitative scope/risk",
+      "sparse_evidence": "do not assume fixed SLOC throughput, LOC velocity, average, or regression",
+      "conversion": "convert only TASK-0007 through TASK-0012 in this wave; later milestones remain reserved",
+      "remeasurement": "TASK-0009 follows TASK-0008 and TASK-0012 follows TASK-0011 before any later wave",
+      "corrections": "for every correction, require nonempty annotations.corrects_event_id, target earlier in frozen file order, same task_id and lap_id, and target.sequence < correction.sequence; only then set superseded_by and derive effective values",
+      "missing_values": "retain non-derivable numeric values as null with a reason; zero requires explicit evidence",
+      "correction_predicate": "jq -s -e 'to_entries as $rows | all($rows[]; if .value.event == \"correction\" then . as $correction | any($rows[]; .key < $correction.key and .value.event_id == $correction.value.annotations.corrects_event_id and .value.task_id == $correction.value.task_id and .value.lap_id == $correction.value.lap_id and .value.sequence < $correction.value.sequence) else true end)' /home/ubuntu/git/agent-harness-work/lap30/events.jsonl"
     }
   },
+  "repository_checks": {
+    "focused_rule": "Each production Task runs its package-scoped command and additive fixture checks listed in its contract.",
+    "full_check": "GOCACHE=\"$(mktemp -d)\" go test ./...",
+    "format_check": "test -z \"$(gofmt -l $(find cmd internal -type f -name '*.go' -print))\"",
+    "diff_check": "git diff --check",
+    "json_check": "jq -e . backlog.json >/dev/null",
+    "canonical_parse": "jq -e . /home/ubuntu/git/agent-harness-work/lap30/events.jsonl >/dev/null",
+    "unique_event_ids": "test -z \"$(jq -r '.event_id' /home/ubuntu/git/agent-harness-work/lap30/events.jsonl | sort | uniq -d)\""
+  },
   "delivery_guardrails": {
-    "production_sloc_counting": "Count nonblank, non-comment executable-source lines only, within the production-LOC file definition.",
-    "no_compression": "LOC caps never authorize semicolon or one-line packing, collapsed error handling, cryptic names, removal of security comments, or combining functions solely to reduce LOC. REVIEW rejects these patterns. gofmt and normal idiomatic structure are mandatory.",
-    "projected_cap_trigger": "At projected use above 90% of a task cumulative ceiling, re-estimate before DEV.",
-    "candidate_cap_trigger": "If a candidate exceeds its ceiling, shed only in the listed order, rerun PLAN and QA before DEV continues, and never compress implementation.",
-    "mandatory_v1": "Never shed readiness; TOTP replay, rate, or absolute lease controls; SO_PEERCRED fail-closed IPC; per-sudo pam_exec live check/no cache; secret non-disclosure from argv/log; source-free attested artifact; or external-trace-compatible minimal audit. If these mandatory v1 requirements still exceed 1500 production SLOC, stop as a requirement gap.",
+    "production_sloc_counting": "Count nonblank, non-comment executable-source lines only within the production-LOC definition; TASK-0006 delta must remain exactly 0 and cumulative baseline exactly 751.",
+    "no_compression": "LOC caps never authorize semicolon or one-line packing, collapsed error handling, cryptic names, removal of security comments, test deletion, or combining functions solely to reduce LOC. REVIEW rejects these patterns; gofmt and idiomatic structure remain mandatory.",
+    "projected_cap_trigger": "Forecast above 90% of a task target cap stops before DEV for split/re-estimation and approved PLAN/QA_PLAN revision.",
+    "candidate_cap_trigger": "Candidate above target cap stops even below hard; crossing or forecasting above hard stops safely. Shed only in the exact listed order after approved replan.",
+    "global_target_and_hard": "1500 is the mandatory-v1 planning target; overflow requires replan and shedding audit. 1800 is an unconditional production-SLOC hard limit and cannot be raised.",
+    "mandatory_controls": ["readiness", "TOTP replay/rate/absolute expiry", "SO_PEERCRED fail-closed IPC", "daemon lifecycle and bounded seed", "per-sudo live check/no cache", "secret non-disclosure", "restricted non-force push", "minimal external-trace audit", "source-free attested artifact", "manual canary/rollback evidence"],
     "ordered_feature_shedding": [
       "automated canary executable; retain manual runbook/evidence",
       "rich status/JSON UX; retain activate and immediate revoke",
-      "rich audit schema/correlation; retain minimal external-trace correlation ID, actor, scope, result, expiry",
-      "precomputed pack-size/history diagnostics; retain exact repo/ref/clean tree and normal non-force rejection",
-      "explicit remote-OID prefetch/race diagnostics; rely on standard non-force git rejection and generic failure",
+      "rich audit schema/correlation; retain correlation ID, actor, scope, result, and expiry",
+      "precomputed pack-size/history diagnostics; retain exact repo/ref/clean-tree validation and normal non-force rejection",
+      "remote-OID prefetch/race diagnostics; retain standard non-force rejection and generic failure",
       "automated installer/rollback executable; retain declarative units and manual verified install/rollback",
-      "GitHub push capability moves to v2, leaving TOTP full-sudo authority as v1"
-    ]
+      "move GitHub push to v2, leaving TOTP full-sudo authority as v1"
+    ],
+    "later_reserve": "TASK-0012 PASS+merge -> MILESTONE-audit-attestation -> MILESTONE-manual-canary-rollback; no silent reserve borrowing."
   },
   "acceptance_checks": [
-    "Only tasks are eligible for PLAN/DEV/branch/PR.",
-    "Only TASK-0007, TASK-0008, and TASK-0009 are newly executable; retained future milestones remain ineligible until TASK-0009 passes and merges.",
-    "TASK-0006 records every listed cycle metric, excludes preflight, applies 20% contingency, and does not assume fixed SLOC throughput when sparse.",
-    "REVIEW verifies non-compressed idiomatic production source and gofmt.",
-    "Candidate over-cap follows exact shedding and re-approved PLAN/QA; mandatory v1 over 1500 is a requirement gap."
+    "Exactly seven TASK-0006 DEV outputs: backlog.json and TASK-0007/TASK.md through TASK-0012/TASK.md.",
+    "Only TASK-0007 through TASK-0012 are newly detailed executable contracts; no seventh detailed contract exists and later milestones remain reserved.",
+    "Index and every contract agree on identity, status/executable flag, dependency, increment, cumulative target/hard cap, paths, entrypoint, fixture/elevation, laps, exclusions, split rule, measurement lineage, and reserve eligibility.",
+    "TASK-0006 production SLOC delta is exactly 0 and cumulative measured baseline remains exactly 751.",
+    "TASK-0009 and TASK-0012 apply the deterministic same-task/same-lap/earlier-file/smaller-sequence correction predicate before effective values.",
+    "Every independent REVIEW and QA runs the focused checks plus GOCACHE=\"$(mktemp -d)\" go test ./..., gofmt, git diff --check, and jq JSON validation as applicable.",
+    "Forecasts, caps, 90% triggers, target/hard reserves, mandatory controls, exact shedding order, and no-compression rules remain binding."
   ],
   "human_gate_evidence": {
-    "review_checklist": "Record inspection of the task acceptance evidence, production-SLOC count against its ceiling, and no-compression/guardrail compliance.",
-    "qa_checklist": "Independently repeat the focused validation and SLOC count, compare the result with the task acceptance and dependency boundary, and record PASS or FAIL evidence."
+    "review_checklist": "Record independent contract/index comparison, fixture and focused/full checks, correction predicate, production-SLOC count, caps/reserves, and no-compression/guardrail compliance.",
+    "qa_checklist": "Independently repeat the focused/full checks, canonical measurement and correction arithmetic, exact seven-file scope, contract/index mapping, dependency walk, reserve gate, and PASS/FAIL classification."
   },
   "acceptance_lineage": {
     "readiness_creates_only_absolute_challenge": "TASK-0001",
@@ -199,9 +320,13 @@
     "ipc_so_peercred_identity_and_fail_closed": "TASK-0004",
     "codex_cli_socket_reachability": "TASK-0005",
     "otp_secret_non_disclosure_at_cli_boundary": "TASK-0005",
-    "rolling_wave_measurement_and_replanning": "TASK-0006",
-    "per_sudo_live_check_and_no_cache": "TASK-0007",
-    "restricted_non_force_push_and_token_custody": "TASK-0008",
-    "next_rolling_wave_measurement_and_replanning": "TASK-0009"
+    "production_daemon_seed_and_ready_otp_routing": "TASK-0007",
+    "per_sudo_live_check_and_no_cache": "TASK-0008",
+    "first_zero_sloc_measurement_gate": "TASK-0009",
+    "local_push_policy_and_validation": "TASK-0010",
+    "restricted_non_force_push_token_custody_and_registration": "TASK-0011",
+    "final_measurement_and_later_reserve_gate": "TASK-0012",
+    "minimal_audit_and_source_free_attestation": "MILESTONE-audit-attestation",
+    "manual_canary_and_rollback_evidence": "MILESTONE-manual-canary-rollback"
   }
 }
