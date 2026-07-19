@@ -49,8 +49,8 @@ changed by QA. Only this QA result was written.
 
 - Final evidence candidate: `dde3501ecebad314a47a0e6cc692bcfd9bc00b12`
   (`fc2f22bb86f687d2393d5d01ef3f47a4e81319ec`).
-- `git diff --check
-  0dbeec721ffffbb757265efc69d1e791b33f7611..dde3501`: **PASS**, exit 0.
+- `git diff --check 0dbeec721ffffbb757265efc69d1e791b33f7611..dde3501`:
+  **PASS**, exit 0.
 - Product, workflow, deployment, and test paths are byte-identical to the
   already-tested `ef8b346bded352ee0e4714cb72563544b9c392e9`; only
   `QA_RESULT.md` was added and `REVIEW_RESULT.md` evidence was appended.
