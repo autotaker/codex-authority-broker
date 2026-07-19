@@ -13,7 +13,7 @@ implementation or later milestone is enabled.
 {
   "id": "TASK-0012",
   "title": "final zero-SLOC measurement and later-reserve gate",
-  "status": "planned",
+  "status": "in_progress",
   "executable": true,
   "depends_on": ["TASK-0017"],
   "baseline_production_sloc": 1407,
