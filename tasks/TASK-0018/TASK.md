@@ -2,9 +2,9 @@
 
 **Depends on:** TASK-0012 merged with independent REVIEW and QA PASS.
 
-**Status:** planned v1 blocker. The manual canary/rollback milestone cannot start
-until this Task passes independent REVIEW and QA, merges, and its live
-attestation verification succeeds.
+**Status:** superseded before candidate fixation by TASK-0019. The readable
+audit core measured +102 rather than +90, so this Task has no product/test
+candidate, REVIEW, QA, PR, merge, or live-attestation result.
 
 ## Contract metadata
 
@@ -12,8 +12,8 @@ attestation verification succeeds.
 {
   "id": "TASK-0018",
   "title": "minimal audit and source-free attested artifact",
-  "status": "planned",
-  "executable": true,
+  "status": "superseded",
+  "executable": false,
   "depends_on": ["TASK-0012"],
   "baseline_production_sloc": 1407,
   "expected_production_sloc": 90,
