@@ -1,47 +1,141 @@
-# TASK-0009: Measurement and rolling-wave replanning gate
+# TASK-0009: first zero-SLOC measurement gate
 
-**Depends on:** TASK-0008.
+**Depends on:** TASK-0008 (merged).
 
 **Status:** planned and executable.
 
-**Preflight prerequisites:** TASK-0007 and TASK-0008 are merged; their
-canonical event/evidence records are complete and readable; the worktree and
-read-only measurement source are usable.  The clock starts only after those
-checks.  A preflight failure is `not_started` and excluded from cycle timing.
+## Contract metadata
 
-**Owns:** the next zero-production-SLOC measurement and replanning gate.  It
-retains TASK-0001 through TASK-0006 history, measures TASK-0007/TASK-0008,
-classifies raw/effective failures with correction provenance, applies 20% time
-contingency, and converts only the next 2–3 evidence-supported reserves.
+```json
+{
+  "id": "TASK-0009",
+  "title": "first zero-SLOC measurement gate",
+  "status": "planned",
+  "executable": true,
+  "depends_on": ["TASK-0008"],
+  "expected_production_sloc": 0,
+  "expected_cumulative_production_sloc": 961,
+  "target_cumulative_cap": 1100,
+  "projected_cap_trigger_sloc": 990,
+  "hard_cumulative_guard": 1250,
+  "production_paths": [],
+  "test_paths": ["tasks/TASK-0009/MEASUREMENT.md"],
+  "entrypoint": null,
+  "fixture_elevation_needs": "Read-only frozen canonical JSONL snapshot; no elevation, network, product fixture, or operational-log write.",
+  "lap_1": "After TASK-0007 and TASK-0008 merge, freeze the completed-event snapshot and regenerate provenance-complete historical plus new-wave SLOC/test/stage/active/wait/retry/raw/effective classification evidence, applying ceil(observed non-preflight time * 1.20) only to observable time.",
+  "lap_2": "Independent REVIEW and QA each run canonical parse/unique-ID/correction-edge checks, independently regenerate measurement and cap arithmetic, and run the repository-native full Go/format/diff checks; main owns Git. TASK-0010 speculative planning is invalidated if evidence changes its boundary.",
+  "exclusions": ["all product/test implementation", "audit", "attestation", "release", "installer", "canary", "editing canonical log"],
+  "split_stop_rule": "Stop on missing or contradictory canonical evidence, non-reproducible arithmetic, actual cumulative above 1100, or inability to independently regenerate in Lap 2; classify before retry and do not bypass TASK-0010.",
+  "measurement_lineage": "Use exactly four completed canonical task IDs, preserve null with reasons, validate every correction target earlier in file order and same task/lap with smaller sequence, retain raw source IDs and superseded_by, and derive effective values only after validation.",
+  "later_reserve_eligibility": "Audit/attestation/manual-canary reserve remains non-executable until TASK-0012 PASS+merge; no converted milestone remains simultaneously reserved and executable.",
+  "contract_path": "tasks/TASK-0009/TASK.md"
+}
+```
 
-**Acceptance:** every completed new Task records planned/actual/cumulative
-production SLOC, test LOC, PLAN/DEV/REVIEW/QA/CI-push-merge and cycle time,
-active/wait observations, retries, raw/effective classifications, source IDs,
-null reasons, and preflight exclusion.  Replanning assumes no fixed SLOC
-throughput and inserts the following measurement gate after the converted
-wave.
+## Purpose and evidence boundary
 
-**Excludes:** implementation of audit, release, installer, canary, or any
-other product behavior; detailed executable contracts beyond the next 2–3
-evidence-supported items.
+This is a zero-production-SLOC measurement and replanning gate after exactly
+the two production Tasks TASK-0007 and TASK-0008. It measures the immutable
+historical baseline and the new completed records, then allows only the next
+bounded contract (TASK-0010) to proceed after independent REVIEW and QA. It
+does not implement product behavior and does not edit the canonical log.
 
-**Production LOC ceiling:** adds **0 production SLOC**; cumulative ceiling
-remains **<=1400** before any next-wave conversion.
+The canonical source is the read-only
+`/home/ubuntu/git/agent-harness-work/lap30/events.jsonl`. A completed task is
+only `event == "lap_completed" && status == "completed"`; the completed set
+for this gate remains exactly TASK-0001, TASK-0003, TASK-0004, and TASK-0005.
+Corrections are not additional tasks.
 
-**Reserve boundary:** `MILESTONE-audit-release` (cumulative reserve <=1500)
-and `MILESTONE-clean-canary` (+0) remain non-executable until TASK-0009 REVIEW
-PASS, QA PASS, and merge.  No branch, PLAN, DEV, or PR-ready contract may begin
-for them earlier.
+## Preflight and two-Lap delivery
 
-**Human gate evidence:** REVIEW records source integrity, complete/null-aware
-arithmetic, corrections, contingency, sparse-evidence discipline, index/task
-consistency, reserves, exact zero-SLOC delta, and scope.  QA independently
-repeats every check and records PASS/FAIL.
+Preflight verifies merged TASK-0007/TASK-0008, freezes the completed-event
+snapshot, and confirms that the source and worktree are readable. A preflight
+failure is `not_started`, excluded from cycle/stage timing, and never replaced
+with a synthetic zero.
 
-**No-compression and scope control:** preserve the global <=1500 cap, >90%
-re-estimation trigger, exact ordered shedding sequence, and mandatory-control
-exclusions.  Mandatory v1 above 1500 is `requirement_gap`, never permission to
-compress or bypass measurement.
+Lap 1 produces provenance-complete SLOC/test/stage/active/wait/retry and
+raw/effective-classification evidence. Required fields include planned and
+actual production SLOC, cumulative SLOC, test LOC, PLAN/DEV/REVIEW/QA and
+CI-push-merge milliseconds and minutes, cycle time, `active_ms`, `wait_ms`,
+maximum propagated retries, source event IDs, null reasons, and units/rounding.
+Stage timing uses only same-task/lap/stage/attempt start-terminal pairs;
+`stage == "preflight"` is excluded. Apply
+`ceil(observed_non_preflight_time * 1.20)` only to observable time; null stays
+null and SLOC gets no multiplier.
 
-**Merge rule:** independent REVIEW PASS and QA PASS are required.  Any FAIL
-returns to its responsible gate and never merges.
+Use this executable validation before deriving effective values:
+
+```sh
+EVENTS=/home/ubuntu/git/agent-harness-work/lap30/events.jsonl
+jq -e . "$EVENTS" >/dev/null
+test -z "$(jq -r '.event_id' "$EVENTS" | sort | uniq -d)"
+jq -s -e '
+  to_entries as $rows
+  | all($rows[];
+      if .value.event == "correction" then
+        . as $correction
+        | any($rows[];
+            .key < $correction.key
+            and .value.event_id == $correction.value.annotations.corrects_event_id
+            and .value.task_id == $correction.value.task_id
+            and .value.lap_id == $correction.value.lap_id
+            and .value.sequence < $correction.value.sequence)
+      else true end)
+' "$EVENTS" >/dev/null
+jq -s -e 'map(select(.task_id == "TASK-0001" or .task_id == "TASK-0003" or .task_id == "TASK-0004" or .task_id == "TASK-0005") | select(.event == "lap_completed" and .status == "completed") | .task_id) | unique == ["TASK-0001", "TASK-0003", "TASK-0004", "TASK-0005"]' "$EVENTS" >/dev/null
+```
+
+The predicate requires a nonempty correction target, earlier frozen-file
+position, same `task_id`, same `lap_id`, and smaller within-lap `sequence`.
+Only after it passes may raw history gain `superseded_by` and effective values
+omit the superseded field/classification. Invalid edges stop measurement;
+history is never deleted or rewritten. In particular, TASK-0005's raw
+`requirement_gap` remains visible as superseded by
+`task0005-lap01-correct-dev-class`, while effective classifications contain
+`planning_defect` (and any other unsuperseded value), not an unlabeled mixture.
+
+Lap 2 has independent REVIEW and QA each regenerate the measurement and cap
+arithmetic from the frozen snapshot and run the full repository checks below.
+TASK-0010's boundary is invalidated and replanned if measured evidence changes
+it. Main owns final checks and Git.
+
+```sh
+GOCACHE="$(mktemp -d)" go test ./...
+test -z "$(gofmt -l $(find cmd internal -type f -name '*.go' -print))"
+git diff --check
+jq -e . backlog.json >/dev/null
+```
+
+## Acceptance and exclusions
+
+- Exactly one evidence row exists for each of the four completed canonical
+  task IDs, with no row created from a correction or incomplete task.
+- SLOC/test, timing/null, preflight, active/wait, retry, correction, source-ID,
+  contingency, and cap arithmetic is independently reproducible.
+- Raw historical classifications and effective unsuperseded classifications
+  are separate and correction-provenanced.
+- No fixed SLOC throughput, LOC velocity, average, or imputed timing sizes the
+  next contract.
+- The gate adds exactly 0 production SLOC; cumulative measured production
+  remains 961 for the planned wave.
+
+This Task excludes all product/test implementation, audit, attestation,
+release, installer, canary, and detailed contracts beyond the next bounded
+wave. It owns no `MEASUREMENT.md` at DEV time; that result is a later REVIEW/
+QA output and is not one of TASK-0006's seven DEV outputs.
+
+## Measurement, caps, and stop rule
+
+The forecast is +0 production SLOC and cumulative 961; target cap 1100,
+90%-trigger 990, hard guard 1250. Stop on missing or contradictory canonical
+evidence, non-reproducible arithmetic, actual cumulative above 1100, or
+inability to independently regenerate in Lap 2. Classify before retry and do
+not bypass TASK-0010. Record active/wait and retries without double-counting
+snapshots, and preserve null with an explicit reason.
+
+## Gate and later reserve
+
+Independent REVIEW PASS and QA PASS are required; a FAIL returns to its
+responsible gate and never merges. No later audit/attestation/manual-canary
+milestone may receive PLAN, branch, DEV, or PR-ready detail until TASK-0012
+passes independent REVIEW and QA and main merges it.
