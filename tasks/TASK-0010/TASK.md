@@ -28,14 +28,19 @@
   "lap_2": "Not authorized while deferred. A future approved v2 QA_PLAN must independently review and QA the focused matrix and repository-native checks.",
   "exclusions": ["token custody", "credential helper", "network transport", "Git child process", "backend registration", "sudo", "audit", "release", "installer", "canary"],
   "split_stop_rule": "No v2 DEV starts without a fresh PLAN/QA_PLAN, fresh frozen evidence, explicit ordered-shedding review, readable estimate, and cap proof; never compress or weaken authorization and denial-before-transport safety.",
-  "measurement_lineage": "TASK-0009 measured baseline is 1253. The former +130 forecast is retained only as v2 reserve evidence; no throughput or SLOC velocity is carried forward.",
+  "measurement_lineage": "TASK-0009 measured baseline is 1253. User-confirmed v1 scope drops GitHub push; the former +130 forecast is retained only as deferred-v2 reserve evidence, contributes zero v1 production SLOC, and carries no throughput or SLOC velocity forward.",
   "later_reserve_eligibility": "Later audit/attestation/manual-canary reserve remains blocked until TASK-0012 independently passes REVIEW and QA and main merges it.",
-  "replan_reason": "TASK-0010 + TASK-0011 former forecasts were 283 SLOC; 1253 + 283 = 1536, 36 over the mandatory-v1 1500 target. Ordered shedding item 7 moves the coupled GitHub push capability to v2.",
+  "replan_reason": "User-confirmed v1 scope drops the coupled GitHub push capability. The former TASK-0010 (+130) and TASK-0011 (+153) forecasts total 283 and would reach 1536, 36 over the mandatory-v1 1500 target; TASK-0010 remains deferred-v2, executable:false, and contributes zero v1 production SLOC.",
   "contract_path": "tasks/TASK-0010/TASK.md"
 }
 ```
 
 ## Explicit v2 disposition
+
+The user-confirmed v1 scope decision drops GitHub push. TASK-0010 therefore
+remains `deferred-v2`, `executable:false`, and contributes zero v1 production
+SLOC; its former +130 estimate is retained only as a v2 reserve for a future
+approved replan.
 
 The frozen TASK-0009 measurement fixes the current merged baseline at **1253
 production SLOC**. The former TASK-0010/TASK-0011 forecasts totalled 283 and
@@ -54,8 +59,9 @@ admission, and denial before any transport boundary; readable idiomatic code
 and mandatory security tests cannot be compressed or removed.
 
 TASK-0011 is the coupled v2 reserve and remains blocked behind this deferred
-Task. TASK-0012 is now the direct zero-SLOC final v1 measurement gate after
-TASK-0009, so no speculative TASK-0010 arithmetic remains enabled.
+Task. The planned TASK-0017 blocker must pass and merge before TASK-0012 can
+freeze the post-TASK-0017 actual zero-SLOC measurement gate, so no speculative
+TASK-0010 arithmetic is enabled in v1.
 
 ## Future re-entry and gate
 

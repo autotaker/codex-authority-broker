@@ -28,14 +28,19 @@
   "lap_2": "Not authorized while deferred. A future approved v2 QA_PLAN must independently mutate malformed, wrong-identity, expired-authority, leakage, force, and ambiguity cases before custody/Git and run repository-native checks.",
   "exclusions": ["changes to cmd/codex-authority/main.go", "broker lifecycle changes beyond one fixed registration call", "generic IPC commands", "arbitrary refspec", "remote-OID prefetch", "force/tag/delete push", "sudo", "audit", "release", "installer", "canary"],
   "split_stop_rule": "No v2 DEV starts without fresh approved plans, fresh evidence, explicit cap/shedding proof, and a readable retained-core estimate; never weaken UID, lease, schema, custody, redaction, or non-force safety.",
-  "measurement_lineage": "TASK-0009 measured baseline is 1253. The former +153 allocation is retained only as v2 reserve evidence; no throughput, reserve borrowing, or contingency-to-SLOC conversion is allowed.",
+  "measurement_lineage": "TASK-0009 measured baseline is 1253. User-confirmed v1 scope drops GitHub push; the former +153 allocation is retained only as deferred-v2 reserve evidence, contributes zero v1 production SLOC, and no throughput, reserve borrowing, or contingency-to-SLOC conversion is allowed.",
   "later_reserve_eligibility": "Later audit/attestation/manual-canary reserve remains blocked until TASK-0012 independently passes REVIEW and QA and main merges it.",
-  "replan_reason": "The coupled former TASK-0010 (+130) and TASK-0011 (+153) forecasts total 283; 1253 + 283 = 1536, 36 above the mandatory-v1 target. Ordered shedding item 7 explicitly defers GitHub push to v2.",
+  "replan_reason": "User-confirmed v1 scope drops the coupled GitHub push capability. The former TASK-0010 (+130) and TASK-0011 (+153) forecasts total 283 and would reach 1536, 36 above the mandatory-v1 target; TASK-0011 remains deferred-v2, executable:false, and contributes zero v1 production SLOC.",
   "contract_path": "tasks/TASK-0011/TASK.md"
 }
 ```
 
 ## Explicit v2 disposition
+
+The user-confirmed v1 scope decision drops GitHub push. TASK-0011 therefore
+remains `deferred-v2`, `executable:false`, and contributes zero v1 production
+SLOC; its former +153 allocation is retained only as a v2 reserve behind the
+future TASK-0010 replan.
 
 TASK-0009 measured 1253 actual merged production SLOC. Restoring the former
 TASK-0010/TASK-0011 forecasts would produce 1536, over the mandatory-v1 1500
@@ -54,8 +59,9 @@ tests are preserved; no code is compressed or silently removed.
 
 No branch, DEV, PR-ready detail, production allocation, fixture execution, or
 implementation is authorized while this Task is deferred. TASK-0010 must first
-be explicitly replanned and approved in a future v2 wave. TASK-0012 now
-measures the direct zero-SLOC v1 wave after TASK-0009.
+be explicitly replanned and approved in a future v2 wave. The planned
+TASK-0017 blocker must pass and merge before TASK-0012 freezes the
+post-TASK-0017 actual zero-SLOC v1 measurement gate.
 
 ## Future re-entry and gate
 
