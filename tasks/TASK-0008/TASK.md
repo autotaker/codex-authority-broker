@@ -14,10 +14,10 @@
   "executable": true,
   "depends_on": ["TASK-0014"],
   "expected_production_sloc": 120,
-  "expected_cumulative_production_sloc": 1207,
-  "target_cumulative_cap": 1300,
-  "projected_cap_trigger_sloc": 1250,
-  "hard_cumulative_guard": 1400,
+  "expected_cumulative_production_sloc": 1274,
+  "target_cumulative_cap": 1350,
+  "projected_cap_trigger_sloc": 1325,
+  "hard_cumulative_guard": 1450,
   "production_paths": ["cmd/codex-authority-sudo/main.go", "deploy/sudo/codex-authority"],
   "test_paths": ["cmd/codex-authority-sudo/main_test.go", "deploy/sudo/codex-authority_test.go"],
   "entrypoint": "cmd/codex-authority-sudo/main.go",
@@ -25,7 +25,7 @@
   "lap_1": "After TASK-0014 merge and approved plans, implement per-invocation live request and declarative timestamp-cache disablement; run go test ./cmd/codex-authority-sudo ./internal/ipc plus the isolated sudo fixture covering allow, expiry, daemon unavailable/restart, malformed/unauthorized reply, and two consecutive invocations.",
   "lap_2": "Independent REVIEW runs focused tests and repository-native full check; QA uses the isolated elevated fixture to prove a live unexpired lease permits and every deny case fails closed with no cached reuse; main owns Git closure.",
   "exclusions": ["daemon/backend assembly", "push", "GitHub credentials", "rich audit", "release", "installer", "packaging", "canary", "real workstation policy mutation"],
-  "split_stop_rule": "Classify not_started/environment_issue if the isolated elevated fixture or rollback proof is unavailable. Split before DEV if more than one client entrypoint and declarative policy is required, forecast exceeds the post-reestimate stop 1250, or platform/PAM differences cannot fit two laps; never weaken live-per-call or no-cache behavior.",
+  "split_stop_rule": "Classify not_started/environment_issue if the isolated elevated fixture or rollback proof is unavailable. Split before DEV if more than one client entrypoint and declarative policy is required, forecast exceeds the post-reestimate trigger 1325, or platform/PAM differences cannot fit two laps; never weaken live-per-call or no-cache behavior. A forecast or candidate above target 1350 stops for explicit replan and exact ordered shedding review; hard guard 1450 is absolute.",
   "measurement_lineage": "Record fixture/elevation waits separately, paired stage timing, active/wait, retries, raw/effective classifications, source IDs, null reasons, and time-only 20% contingency; no SLOC throughput sizing.",
   "later_reserve_eligibility": "Later audit/attestation/manual-canary reserve remains ineligible until TASK-0012 PASS+merge.",
   "contract_path": "tasks/TASK-0008/TASK.md"
@@ -86,8 +86,8 @@ audit, release, installer, packaging, and canary work.
 
 ## Measurement, caps, and split/stop rule
 
-The forecast is +120 production SLOC and cumulative 1207; post-reestimate stop
-1250, target cap 1300, hard guard 1400. Forecast above 1250 stops before DEV for
+The forecast is +120 production SLOC and cumulative 1274; post-reestimate trigger
+1325, target cap 1350, hard guard 1450. Forecast above 1325 stops before DEV for
 split/re-estimation and approved PLAN/QA_PLAN revision. Record elevation and
 fixture waiting separately from active work; record paired stage timing,
 active/wait, propagated retries, raw/effective classifications, source IDs,
@@ -97,7 +97,7 @@ SLOC/minute or another fixed throughput assumption.
 
 If the isolated elevated fixture or rollback proof is unavailable, stop as
 `not_started/environment_issue`. Split before DEV if more than this single
-client entrypoint and declarative policy are required, forecast exceeds 1250,
+client entrypoint and declarative policy are required, forecast exceeds 1325,
 or platform/PAM differences cannot be covered in two laps. Do not weaken
 live-per-call or no-cache behavior. A candidate above target or hard limits
 stops safely.

@@ -14,18 +14,18 @@
   "executable": true,
   "depends_on": ["TASK-0008"],
   "expected_production_sloc": 0,
-  "expected_cumulative_production_sloc": 1207,
-  "target_cumulative_cap": 1300,
-  "projected_cap_trigger_sloc": 1250,
-  "hard_cumulative_guard": 1400,
+  "expected_cumulative_production_sloc": 1274,
+  "target_cumulative_cap": 1350,
+  "projected_cap_trigger_sloc": 1325,
+  "hard_cumulative_guard": 1450,
   "production_paths": [],
   "test_paths": ["tasks/TASK-0009/MEASUREMENT.md"],
   "entrypoint": null,
   "fixture_elevation_needs": "Read-only frozen canonical JSONL snapshot; no elevation, network, product fixture, or operational-log write.",
   "lap_1": "After TASK-0013, TASK-0014, and TASK-0008 merge, freeze the completed-event snapshot and regenerate provenance-complete historical plus new-wave SLOC/test/stage/active/wait/retry/raw/effective classification evidence, applying ceil(observed non-preflight time * 1.20) only to observable time.",
-  "lap_2": "Independent REVIEW and QA each run canonical parse/unique-ID/correction-edge checks, independently regenerate measurement and cap arithmetic, and run the repository-native full Go/format/diff checks; main owns Git. TASK-0010 speculative planning is invalidated if evidence changes its boundary.",
+  "lap_2": "Independent REVIEW and QA each run canonical parse/unique-ID/correction-edge checks, independently regenerate measurement and cap arithmetic, and run the repository-native full Go/format/diff checks; main owns Git. TASK-0010 through TASK-0012 speculative arithmetic is invalidated and must be explicitly replanned from this evidence; push-to-v2 remains a TASK-0009 decision, never a silent selection.",
   "exclusions": ["all product/test implementation", "audit", "attestation", "release", "installer", "canary", "editing canonical log"],
-  "split_stop_rule": "Stop on missing or contradictory canonical evidence, non-reproducible arithmetic, actual cumulative above target 1300, or inability to independently regenerate in Lap 2; classify before retry and do not bypass TASK-0010.",
+  "split_stop_rule": "Stop on missing or contradictory canonical evidence, non-reproducible arithmetic, actual cumulative above target 1350, or inability to independently regenerate in Lap 2; classify before retry and do not bypass explicit replanning. Target 1500 may be exceeded only after an explicit later replan; push-to-v2 remains a TASK-0009 decision, never a silent selection.",
   "measurement_lineage": "Include the terminated TASK-0007 raw evidence and completed replacement TASK-0013/TASK-0014 lineage, preserve null with reasons, validate every correction target earlier in file order and same task/lap with smaller sequence, retain raw source IDs and superseded_by, and derive effective values only after validation.",
   "later_reserve_eligibility": "Audit/attestation/manual-canary reserve remains non-executable until TASK-0012 PASS+merge; no converted milestone remains simultaneously reserved and executable.",
   "contract_path": "tasks/TASK-0009/TASK.md"
@@ -36,9 +36,10 @@
 
 This is a zero-production-SLOC measurement and replanning gate after exactly
 the two replacement production Tasks TASK-0013/TASK-0014 and TASK-0008. It measures the immutable
-historical baseline and the new completed records, then allows only the next
-bounded contract (TASK-0010) to proceed after independent REVIEW and QA. It
-does not implement product behavior and does not edit the canonical log.
+historical baseline and the new completed records, then requires explicit
+replanning before any speculative TASK-0010--TASK-0012 work may proceed after
+independent REVIEW and QA. It does not implement product behavior and does not
+edit the canonical log.
 
 The canonical source is the read-only
 `/home/ubuntu/git/agent-harness-work/lap30/events.jsonl`. A completed task is
@@ -96,8 +97,10 @@ history is never deleted or rewritten. In particular, TASK-0005's raw
 
 Lap 2 has independent REVIEW and QA each regenerate the measurement and cap
 arithmetic from the frozen snapshot and run the full repository checks below.
-TASK-0010's boundary is invalidated and replanned if measured evidence changes
-it. Main owns final checks and Git.
+TASK-0010 through TASK-0012 speculative arithmetic is invalidated now and must
+be explicitly replanned from this evidence. Target 1500 may be exceeded only
+after that later explicit replan; whether GitHub push moves to v2 remains a
+TASK-0009 decision, never a silent selection. Main owns final checks and Git.
 
 ```sh
 GOCACHE="$(mktemp -d)" go test ./...
@@ -117,7 +120,7 @@ jq -e . backlog.json >/dev/null
 - No fixed SLOC throughput, LOC velocity, average, or imputed timing sizes the
   next contract.
 - The gate adds exactly 0 production SLOC; forecast cumulative production is
-  1207 before independent measurement reconciliation.
+  1274 before independent measurement reconciliation.
 
 This Task excludes all product/test implementation, audit, attestation,
 release, installer, canary, and detailed contracts beyond the next bounded
@@ -126,11 +129,13 @@ QA output and is not one of TASK-0006's seven DEV outputs.
 
 ## Measurement, caps, and stop rule
 
-The forecast is +0 production SLOC and cumulative 1207; post-reestimate stop
-1250, target cap 1300, hard guard 1400. Stop on missing or contradictory canonical
-evidence, non-reproducible arithmetic, actual cumulative above 1300, or
+The forecast is +0 production SLOC and cumulative 1274; post-reestimate trigger
+1325, target cap 1350, hard guard 1450. Stop on missing or contradictory canonical
+evidence, non-reproducible arithmetic, actual cumulative above 1350, or
 inability to independently regenerate in Lap 2. Classify before retry and do
-not bypass TASK-0010. Record active/wait and retries without double-counting
+not bypass explicit replanning. Target 1500 may be exceeded only after an
+explicit later replan; push-to-v2 remains a TASK-0009 decision, never a silent
+selection. Record active/wait and retries without double-counting
 snapshots, and preserve null with an explicit reason.
 
 ## Gate and later reserve

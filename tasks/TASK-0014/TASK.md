@@ -13,11 +13,11 @@
   "status": "planned",
   "executable": true,
   "depends_on": ["TASK-0013"],
-  "expected_production_sloc": 186,
-  "expected_cumulative_production_sloc": 1087,
-  "target_cumulative_cap": 1150,
-  "projected_cap_trigger_sloc": 1125,
-  "hard_cumulative_guard": 1200,
+  "expected_production_sloc": 232,
+  "expected_cumulative_production_sloc": 1154,
+  "target_cumulative_cap": 1250,
+  "projected_cap_trigger_sloc": 1200,
+  "hard_cumulative_guard": 1350,
   "production_paths": ["cmd/codex-authority-broker/main.go"],
   "test_paths": ["cmd/codex-authority-broker/main_test.go"],
   "entrypoint": "cmd/codex-authority-broker/main.go",
@@ -25,7 +25,7 @@
   "lap_1": "After TASK-0013 merge and approved PLAN and QA_PLAN, implement bounded seed admission and daemon lifecycle only; run go test ./cmd/codex-authority ./cmd/codex-authority-broker ./internal/backend ./internal/ipc ./internal/lease.",
   "lap_2": "Independent REVIEW runs focused and full checks; QA independently exercises valid and invalid seed metadata/schema, redaction, startup, shutdown, restart, and existing-client regression; main owns Git.",
   "exclusions": ["runtime API changes", "new IPC operation", "sudo", "push", "GitHub credentials", "persistence", "audit", "release", "installer", "canary"],
-  "split_stop_rule": "Stop before or during DEV if runtime/IPC changes are required, descriptor-safe metadata cannot be isolated, Lap 1 lacks gate-ready tests, or cumulative forecast or measurement exceeds 1125; never use Lap 3.",
+  "split_stop_rule": "Stop before or during DEV if runtime/IPC changes are required, descriptor-safe metadata cannot be isolated, Lap 1 lacks gate-ready tests, or cumulative forecast or measurement exceeds the 1200 trigger; never use Lap 3. A forecast or candidate above target 1250 stops for explicit replan and exact ordered shedding review; hard guard 1350 is absolute.",
   "measurement_lineage": "Replacement for the secure seed/daemon half of terminated TASK-0007; record production/test SLOC, paired stage timing, active/wait, retries, classifications, null reasons, and time-only contingency.",
   "later_reserve_eligibility": "Later audit/attestation/manual-canary reserve remains ineligible until TASK-0012 PASS+merge.",
   "contract_path": "tasks/TASK-0014/TASK.md"
@@ -65,7 +65,11 @@ matrix. Main alone owns Git.
 
 ## Stop and SLOC controls
 
-Forecast is +186 and cumulative 1087. Stop above 1125, target 1150, or hard
-1200. Stop if a runtime or IPC production change is required, descriptor-safe
-metadata cannot be isolated, or Lap 1 is not gate-ready. Do not compress code,
-weaken seed or lifecycle controls, delete tests, or use a third Lap.
+The actual merged baseline is 922. Forecast is +232 (readable range +225--240)
+and cumulative 1154. The forecast remains below the 1200 trigger; stop on a
+forecast or measurement above that trigger. Target 1250 requires explicit
+replan and the exact global ordered-shedding review; hard guard 1350 is
+absolute. Stop if a runtime or IPC production change is required,
+descriptor-safe metadata cannot be isolated, or Lap 1 is not gate-ready. Do
+not compress code, weaken seed or lifecycle controls, delete tests, or use a
+third Lap.
