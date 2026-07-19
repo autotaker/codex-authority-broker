@@ -23,21 +23,23 @@
   },
   "wave": {
     "baseline_production_sloc": 1253,
-    "expected_added_production_sloc": 0,
-    "expected_cumulative_production_sloc": 1253,
+    "expected_added_production_sloc": 55,
+    "expected_cumulative_production_sloc": 1308,
     "target_cumulative_sloc": 1500,
     "hard_cumulative_sloc": 1800,
-    "target_reserve_sloc": 247,
-    "hard_reserve_sloc": 547,
+    "target_reserve_sloc": 192,
+    "hard_reserve_sloc": 492,
     "measurement_source": "/tmp/task0009-events-frozen.jsonl; sha256 abe31c9da1fbcfd32daef6013a9ce58063ccbb086265b4760ca20a22962af09b; 389 lines",
-    "push_to_v2_decision": "selected: former TASK-0010 (+130) + TASK-0011 (+153) would produce 1536, 36 above target 1500; ordered shedding item 7 defers both coupled push Tasks while preserving mandatory safety and readability",
-    "formula": "1253 actual merged baseline after TASK-0015 (+278), TASK-0016 (+15), and TASK-0008 (+38) + 0 TASK-0009 = 1253; former TASK-0010 (+130) + TASK-0011 (+153) = 283 would reach 1536, so ordered shedding item 7 explicitly defers both coupled push Tasks to v2 and TASK-0012 is replanned as the direct zero-SLOC v1 gate",
+    "push_to_v2_decision": "selected (user-confirmed v1 scope): GitHub push capability is dropped from v1; former TASK-0010 (+130) and TASK-0011 (+153) remain deferred-v2, executable:false, and contribute zero v1 production SLOC while the dedicated socket/PAM identity handoff is the v1 blocker",
+    "formula": "1253 actual merged baseline after TASK-0015 (+278), TASK-0016 (+15), and TASK-0008 (+38) + TASK-0009 zero-SLOC measurement = 1253; planned TASK-0017 v1 blocker forecast +55 yields projected cumulative 1308; user-confirmed v1 push drop leaves former TASK-0010 (+130) and TASK-0011 (+153) as deferred-v2 zero-v1-SLOC reserves, and TASK-0012 freezes the post-TASK-0017 actual measurement rather than treating the +55 forecast as actual",
     "owner_lineage": [
-      "TASK-0009 measurement PASS+merge and explicit replan",
+      "TASK-0009 measurement PASS+merge and user-confirmed v1 push drop",
+      "TASK-0017 planned v1 blocker: dedicated socket ownership and PAM peer identity handoff (+55 forecast; actual pending)",
+      "TASK-0012 post-TASK-0017 frozen actual measurement gate",
       "MILESTONE-audit-attestation",
       "MILESTONE-manual-canary-rollback"
     ],
-    "later_reserve_rule": "Neither later milestone receives PLAN, branch, DEV, PR-ready detail, or production allocation until TASK-0012 independent REVIEW and QA both PASS and it merges. TASK-0010 and TASK-0011 are explicitly deferred-v2 and non-executable; TASK-0012 is the direct zero-SLOC gate after TASK-0009."
+    "later_reserve_rule": "TASK-0012 cannot start until planned TASK-0017 passes independent REVIEW and QA and merges; after TASK-0012 independent REVIEW and QA both PASS and it merges, neither later milestone receives PLAN, branch, DEV, PR-ready detail, or production allocation before its own gate. TASK-0010 and TASK-0011 are explicitly user-confirmed deferred-v2, non-executable, and zero-v1-SLOC reserves."
   },
   "tasks": [
     {
@@ -253,12 +255,36 @@
       "entrypoint": null,
       "fixture_elevation_needs": "Read-only frozen canonical JSONL snapshot; no elevation, network, product fixture, or operational-log write.",
       "lap_1": "After TASK-0013, TASK-0015, TASK-0016, and TASK-0008 merge, freeze the canonical snapshot; keep the four-task historical performance cohort separate from governance/partial events, measure TASK-0015/TASK-0016/TASK-0008 product terminals, preserve TASK-0013 completion timing as null because no canonical TASK-0013 terminal exists, and regenerate provenance-complete SLOC/test/stage/active/wait/retry/raw/effective classification evidence. Apply ceil(observed non-preflight time * 1.20) only to observable time.",
-      "lap_2": "Independent REVIEW and QA each run canonical parse/unique-ID/correction-edge checks, independently regenerate measurement and cap arithmetic, and run the repository-native full Go/format/diff checks; main owns Git. The former TASK-0010/TASK-0011 arithmetic is explicitly replanned as non-executable v2 reserve, TASK-0012 depends directly on TASK-0009 as the zero-SLOC v1 gate, and push-to-v2 is recorded as selected rather than silently inferred.",
+      "lap_2": "Independent REVIEW and QA each run canonical parse/unique-ID/correction-edge checks, independently regenerate measurement and cap arithmetic, and run the repository-native full Go/format/diff checks; main owns Git. The former TASK-0010/TASK-0011 arithmetic is explicitly replanned as non-executable v2 reserve, planned TASK-0017 is the v1 blocker, TASK-0012 follows TASK-0017 as the frozen post-TASK-0017 actual zero-SLOC gate, and the user-confirmed push-to-v2 decision is explicit rather than silently inferred.",
       "exclusions": ["all product/test implementation", "audit", "attestation", "release", "installer", "canary", "editing canonical log"],
       "split_stop_rule": "Stop on missing or contradictory canonical evidence, non-reproducible arithmetic, actual cumulative above target 1350, or inability to independently regenerate in Lap 2; classify before retry and do not bypass explicit replanning. Target 1500 may be exceeded only after an explicit later replan. This gate explicitly selects ordered-shedding item 7 (push-to-v2) and defers TASK-0010/TASK-0011 without weakening mandatory safety.",
       "measurement_lineage": "Historical performance cohort is exactly TASK-0001/0003/0004/0005. Exclude annotations.counts_as_product_lap=false partials from product terminals; keep TASK-0006 governance cycles separate. Include terminated TASK-0007, unfinished TASK-0014, completed TASK-0015/TASK-0016/TASK-0008, and TASK-0013 merged SLOC lineage with null completion timing because no canonical TASK-0013 terminal exists. Preserve null with reasons, validate every correction target earlier in file order and same task/lap with smaller sequence, retain raw source IDs and superseded_by, and derive effective values only after validation.",
       "later_reserve_eligibility": "Audit/attestation/manual-canary reserve remains non-executable until TASK-0012 PASS+merge; no converted milestone remains simultaneously reserved and executable.",
       "contract_path": "tasks/TASK-0009/TASK.md"
+    },
+    {
+      "id": "TASK-0017",
+      "title": "dedicated socket ownership and PAM peer identity handoff",
+      "status": "planned",
+      "executable": true,
+      "depends_on": ["TASK-0008", "TASK-0015", "TASK-0016"],
+      "baseline_production_sloc": 1253,
+      "expected_production_sloc": 55,
+      "expected_cumulative_production_sloc": 1308,
+      "target_cumulative_cap": 1400,
+      "projected_cap_trigger_sloc": 1350,
+      "hard_cumulative_guard": 1450,
+      "production_paths": ["cmd/codex-authority-broker/main.go", "cmd/codex-authority-sudo/main.go"],
+      "test_paths": ["cmd/codex-authority-broker/main_test.go", "cmd/codex-authority-sudo/main_test.go", "deploy/sudo/codex-authority_test.go"],
+      "entrypoint": "cmd/codex-authority-sudo/main.go",
+      "fixture_elevation_needs": "Private mount namespace with copied tmpfs /etc and tmpfs /run, a disposable root-owned mode-0600 seed for a dedicated nonzero equal UID/GID identity, fixture-only PAM and sudoers, real Authenticator TOTP, real broker/socket/PAM/sudo, exact host hash/list rollback, and no live workstation mutation.",
+      "lap_1": "With approved PLAN and TASK-first QA_PLAN, make the broker create the fixed socket for the configured dedicated nonzero equal UID/GID and make the PAM helper derive that identity only from the fixed root-directory socket metadata, permanently drop supplementary groups/GID/UID before its one authorize call, then run focused and isolated real TOTP/PAM/sudo tests.",
+      "lap_2": "Exceptional only for one or two bounded findings requiring no redesign. Independent REVIEW and QA each verify socket ownership and replacement resistance, irreversible identity drop before transport, SO_PEERCRED denial, live/no-cache sudo, broker-stop/restart denial, redaction, rollback, full/race/vet/format/diff checks, and Main-only Git.",
+      "exclusions": ["trusting PAM_RUSER, PAM_USER, environment, stdin, or caller-selected UID/GID", "allowing UID 0", "multiple authority sockets", "push or GitHub credentials", "installer or live-host PAM mutation", "audit", "attestation", "release", "canary"],
+      "split_stop_rule": "Stop before DEV if identity cannot be derived from a fixed-path socket beneath a non-writable root-owned directory, the dedicated identity cannot require equal nonzero UID/GID, groups/GID/UID cannot be irreversibly dropped before connect, broker and PAM peers need different authority rules, a second socket or seed disclosure is required, forecast exceeds 1350 cumulative, or the real isolated E2E/rollback fixture is unavailable; never bypass SO_PEERCRED or accept root as the authority client.",
+      "measurement_lineage": "The post-TASK-0009 real E2E accepted ready/OTP/authorize for UID 1000 only after a fixture chown; production broker omitted ipc.Config.Access. Real PAM then launched the helper as UID 0, which the single nonzero allowed_uid correctly rejected. A root-peer retry could not start because seed parsing correctly rejects UID 0. Forecast +55 covers broker Access wiring and bounded socket-metadata identity-drop logic, not test throughput.",
+      "later_reserve_eligibility": "TASK-0012 and later audit/attestation/manual-canary work remain blocked until this Task passes, merges, and its actual SLOC/E2E evidence is available.",
+      "contract_path": "tasks/TASK-0017/TASK.md"
     },
     {
       "id": "TASK-0010",
@@ -281,9 +307,9 @@
       "lap_2": "Not authorized while deferred. A future approved v2 QA_PLAN must independently review and QA the focused matrix and repository-native checks.",
       "exclusions": ["token custody", "credential helper", "network transport", "Git child process", "backend registration", "sudo", "audit", "release", "installer", "canary"],
       "split_stop_rule": "No v2 DEV starts without a fresh PLAN/QA_PLAN, fresh frozen evidence, explicit ordered-shedding review, readable estimate, and cap proof; never compress or weaken authorization and denial-before-transport safety.",
-      "measurement_lineage": "TASK-0009 measured baseline is 1253. The former +130 forecast is retained only as v2 reserve evidence; no throughput or SLOC velocity is carried forward.",
+      "measurement_lineage": "TASK-0009 measured baseline is 1253. User-confirmed v1 scope drops GitHub push; the former +130 forecast is retained only as deferred-v2 reserve evidence, contributes zero v1 production SLOC, and carries no throughput or SLOC velocity forward.",
       "later_reserve_eligibility": "Later audit/attestation/manual-canary reserve remains blocked until TASK-0012 independently passes REVIEW and QA and main merges it.",
-      "replan_reason": "TASK-0010 + TASK-0011 former forecasts were 283 SLOC; 1253 + 283 = 1536, 36 over the mandatory-v1 1500 target. Ordered shedding item 7 moves the coupled GitHub push capability to v2.",
+      "replan_reason": "User-confirmed v1 scope drops the coupled GitHub push capability. The former TASK-0010 (+130) and TASK-0011 (+153) forecasts total 283 and would reach 1536, 36 over the mandatory-v1 1500 target; TASK-0010 remains deferred-v2, executable:false, and contributes zero v1 production SLOC.",
       "contract_path": "tasks/TASK-0010/TASK.md"
     },
     {
@@ -307,9 +333,9 @@
       "lap_2": "Not authorized while deferred. A future approved v2 QA_PLAN must independently mutate malformed, wrong-identity, expired-authority, leakage, force, and ambiguity cases before custody/Git and run repository-native checks.",
       "exclusions": ["changes to cmd/codex-authority/main.go", "broker lifecycle changes beyond one fixed registration call", "generic IPC commands", "arbitrary refspec", "remote-OID prefetch", "force/tag/delete push", "sudo", "audit", "release", "installer", "canary"],
       "split_stop_rule": "No v2 DEV starts without fresh approved plans, fresh evidence, explicit cap/shedding proof, and a readable retained-core estimate; never weaken UID, lease, schema, custody, redaction, or non-force safety.",
-      "measurement_lineage": "TASK-0009 measured baseline is 1253. The former +153 allocation is retained only as v2 reserve evidence; no throughput, reserve borrowing, or contingency-to-SLOC conversion is allowed.",
+      "measurement_lineage": "TASK-0009 measured baseline is 1253. User-confirmed v1 scope drops GitHub push; the former +153 allocation is retained only as deferred-v2 reserve evidence, contributes zero v1 production SLOC, and no throughput, reserve borrowing, or contingency-to-SLOC conversion is allowed.",
       "later_reserve_eligibility": "Later audit/attestation/manual-canary reserve remains blocked until TASK-0012 independently passes REVIEW and QA and main merges it.",
-      "replan_reason": "The coupled former TASK-0010 (+130) and TASK-0011 (+153) forecasts total 283; 1253 + 283 = 1536, 36 above the mandatory-v1 target. Ordered shedding item 7 explicitly defers GitHub push to v2.",
+      "replan_reason": "User-confirmed v1 scope drops the coupled GitHub push capability. The former TASK-0010 (+130) and TASK-0011 (+153) forecasts total 283 and would reach 1536, 36 above the mandatory-v1 target; TASK-0011 remains deferred-v2, executable:false, and contributes zero v1 production SLOC.",
       "contract_path": "tasks/TASK-0011/TASK.md"
     },
     {
@@ -317,24 +343,24 @@
       "title": "final zero-SLOC measurement and later-reserve gate",
       "status": "planned",
       "executable": true,
-      "depends_on": ["TASK-0009"],
-      "baseline_production_sloc": 1253,
+      "depends_on": ["TASK-0017"],
+      "baseline_production_sloc": 1308,
       "expected_production_sloc": 0,
-      "expected_cumulative_production_sloc": 1253,
+      "expected_cumulative_production_sloc": 1308,
       "target_cumulative_cap": 1500,
       "projected_cap_trigger_sloc": 1495,
       "hard_cumulative_guard": 1800,
       "production_paths": [],
       "test_paths": ["tasks/TASK-0012/MEASUREMENT.md"],
       "entrypoint": null,
-      "fixture_elevation_needs": "Read-only frozen TASK-0009/v1 event snapshot; no elevation, network, product fixture, or operational-log write.",
-      "lap_1": "After TASK-0009 PASS+merge, freeze the v1 snapshot and regenerate historical/product SLOC, test LOC, stage, cycle, active/wait, retry, null, and raw/effective correction evidence; reconcile 1253 actual against target 1500 and hard 1800.",
-      "lap_2": "Independent REVIEW and QA each regenerate the evidence and run the canonical correction and repository-native full checks; prove TASK-0010/TASK-0011 remain non-executable v2 reserve and no later milestone receives DEV detail; main owns Git.",
+      "fixture_elevation_needs": "Read-only frozen post-TASK-0017 v1 event snapshot; no elevation, network, product fixture, or operational-log write.",
+      "lap_1": "After TASK-0017 PASS+merge, freeze the post-TASK-0017 v1 snapshot and regenerate historical/product SLOC, test LOC, stage, cycle, active/wait, retry, null, and raw/effective correction evidence; record TASK-0017's actual production delta rather than substituting its +55 forecast, then reconcile the actual cumulative value against target 1500 and hard 1800.",
+      "lap_2": "Independent REVIEW and QA each regenerate the frozen post-TASK-0017 actual evidence and run the canonical correction and repository-native full checks; prove TASK-0010/TASK-0011 remain non-executable v2 reserve and no later milestone receives DEV detail; main owns Git.",
       "exclusions": ["all product/test implementation", "TASK-0010/TASK-0011 push implementation", "audit", "attestation", "release", "installer", "canary", "editing canonical log", "enabling later DEV"],
       "split_stop_rule": "Stop on canonical defects, unexplained cap drift, actual above 1500, any hard-limit risk, missing independent regeneration, or inability to close REVIEW/QA in Lap 2; later reserve remains blocked.",
-      "measurement_lineage": "Apply TASK-0009's exact correction predicate and raw/effective provenance to the frozen v1 stream; compare measured 1253 baseline and zero delta without fixed throughput or reserve borrowing.",
+      "measurement_lineage": "The pre-TASK-0017 merged baseline is 1253 and the planned TASK-0017 forecast is +55 (projected 1308), but both are planning evidence until that Task passes and merges. Then apply TASK-0009's exact correction predicate and raw/effective provenance to a frozen post-TASK-0017 v1 stream and measure the actual cumulative baseline plus zero Task-0012 delta without fixed throughput, forecast substitution, or reserve borrowing.",
       "later_reserve_eligibility": "Only after independent REVIEW PASS, independent QA PASS, and main merge may MILESTONE-audit-attestation then MILESTONE-manual-canary-rollback receive PLAN; both remain non-executable beforehand.",
-      "replan_reason": "TASK-0009 measured 1253. Former TASK-0010/TASK-0011 forecasts totalled 283 and would reach 1536, 36 over target; ordered shedding item 7 moves both coupled push Tasks to v2, so this gate measures the direct zero-SLOC v1 wave.",
+      "replan_reason": "TASK-0009 measured 1253 and TASK-0017 is the planned v1 blocker with a readable +55 forecast (projected 1308); after its PASS+merge this gate must freeze and measure actual post-TASK-0017 production SLOC. The user-confirmed v1 push drop keeps former TASK-0010/TASK-0011 forecasts (+130/+153) deferred-v2 and zero v1 SLOC, so this remains the direct zero-SLOC v1 gate before later reserve work.",
       "contract_path": "tasks/TASK-0012/TASK.md"
     }
   ],
@@ -378,8 +404,8 @@
       "contingency": "ceil(observed non-preflight time * 1.20); null remains null and SLOC receives no multiplier",
       "evidence": "derive next-wave sizing from observed completed cycles and qualitative scope/risk",
       "sparse_evidence": "do not assume fixed SLOC throughput, LOC velocity, average, or regression",
-      "conversion": "terminate TASK-0007, preserve unfinished TASK-0014, deliver replacements TASK-0013/TASK-0015, then continue TASK-0008 through TASK-0012; later milestones remain reserved",
-      "remeasurement": "TASK-0009 follows TASK-0008 and TASK-0012 follows TASK-0011 before any later wave",
+      "conversion": "terminate TASK-0007, preserve unfinished TASK-0014, deliver replacements TASK-0013/TASK-0015, continue TASK-0008 through TASK-0009, close the planned TASK-0017 v1 blocker, then run TASK-0012's frozen post-TASK-0017 actual measurement; user-confirmed deferred-v2 TASK-0010/TASK-0011 contribute zero v1 SLOC and later milestones remain reserved",
+      "remeasurement": "TASK-0009 follows TASK-0008; planned TASK-0017 follows its merged product prerequisites; TASK-0012 follows TASK-0017 and freezes actual post-TASK-0017 evidence before any later wave",
       "corrections": "for every correction, require nonempty annotations.corrects_event_id, target earlier in frozen file order, same task_id and lap_id, and target.sequence < correction.sequence; only then set superseded_by and derive effective values",
       "missing_values": "retain non-derivable numeric values as null with a reason; zero requires explicit evidence",
       "correction_predicate": "jq -s -e 'to_entries as $rows | all($rows[]; if .value.event == \"correction\" then . as $correction | any($rows[]; .key < $correction.key and .value.event_id == $correction.value.annotations.corrects_event_id and .value.task_id == $correction.value.task_id and .value.lap_id == $correction.value.lap_id and .value.sequence < $correction.value.sequence) else true end)' /home/ubuntu/git/agent-harness-work/lap30/events.jsonl"
@@ -400,7 +426,7 @@
     "projected_cap_trigger": "The original 90% trigger forces explicit split/re-estimation and PLAN/QA_PLAN approval. After it fires, the approved per-Task absolute stop in projected_cap_trigger_sloc applies with explicit forecast headroom; target 1500 and hard 1800 are unchanged.",
     "candidate_cap_trigger": "Candidate above target cap stops even below hard; crossing or forecasting above hard stops safely. Shed only in the exact listed order after approved replan.",
     "global_target_and_hard": "1500 is the mandatory-v1 planning target; overflow requires replan and shedding audit. 1800 is an unconditional production-SLOC hard limit and cannot be raised.",
-    "mandatory_controls": ["readiness", "TOTP replay/rate/absolute expiry", "SO_PEERCRED fail-closed IPC", "daemon lifecycle and bounded seed", "per-sudo live check/no cache", "secret non-disclosure", "restricted non-force push", "minimal external-trace audit", "source-free attested artifact", "manual canary/rollback evidence"],
+    "mandatory_controls": ["readiness", "TOTP replay/rate/absolute expiry", "SO_PEERCRED fail-closed IPC", "daemon lifecycle and bounded seed", "per-sudo live check/no cache", "secret non-disclosure", "dedicated socket ownership and PAM peer identity handoff", "minimal external-trace audit", "source-free attested artifact", "manual canary/rollback evidence"],
     "ordered_feature_shedding": [
       "automated canary executable; retain manual runbook/evidence",
       "rich status/JSON UX; retain activate and immediate revoke",
@@ -410,16 +436,16 @@
       "automated installer/rollback executable; retain declarative units and manual verified install/rollback",
       "move GitHub push to v2, leaving TOTP full-sudo authority as v1"
     ],
-    "later_reserve": "TASK-0009 measured 1253 actual, leaving 247 to target 1500 and 547 to hard 1800. Former TASK-0010/TASK-0011 forecasts totalled 283 and would reach 1536, so ordered shedding item 7 explicitly moves both coupled push Tasks to non-executable v2 reserve; TASK-0012 is replanned as the direct zero-SLOC v1 gate. TASK-0012 PASS+merge -> MILESTONE-audit-attestation -> MILESTONE-manual-canary-rollback; no hard-limit borrowing, compression, or silent reserve use."
+    "later_reserve": "TASK-0009 measured 1253 actual and planned TASK-0017 forecasts +55, leaving a projected 192 to target 1500 and 492 to hard 1800; actual post-TASK-0017 measurement remains required. The user-confirmed v1 push drop keeps former TASK-0010/TASK-0011 forecasts (+130/+153) in non-executable v2 reserve with zero v1 SLOC. TASK-0012 follows TASK-0017 as the frozen post-TASK-0017 actual zero-SLOC gate, then TASK-0012 PASS+merge -> MILESTONE-audit-attestation -> MILESTONE-manual-canary-rollback; no hard-limit borrowing, compression, or silent reserve use."
   },
   "acceptance_checks": [
-    "The user-approved Disposition 2 atomically updates backlog, terminates TASK-0007, creates TASK-0013/TASK-0014, and propagates TASK-0008 through TASK-0012.",
-    "TASK-0007 and unfinished TASK-0014 are non-executable with zero merged SLOC; TASK-0013 and TASK-0015 own the runtime and seed/daemon boundaries and later milestones remain reserved.",
-    "Index and every contract agree on identity, status/executable flag, dependency, increment, cumulative target/hard cap, paths, entrypoint, fixture/elevation, laps, exclusions, split rule, measurement lineage, replan reason, and reserve eligibility; TASK-0010/TASK-0011 are deferred-v2 and TASK-0012 depends directly on TASK-0009.",
+    "The user-approved Disposition 2 atomically updates backlog, terminates TASK-0007, creates TASK-0013/TASK-0014, and propagates TASK-0008 through TASK-0009; this amendment adds planned TASK-0017 as the v1 blocker and places TASK-0012 after its frozen actual measurement without enabling push implementation.",
+    "TASK-0007 and unfinished TASK-0014 are non-executable with zero merged SLOC; TASK-0013 and TASK-0015 own the runtime and seed/daemon boundaries, TASK-0017 remains a planned v1 blocker until independent REVIEW/QA and merge, and later milestones remain reserved.",
+    "Index and every contract agree on identity, status/executable flag, dependency, increment, cumulative target/hard cap, paths, entrypoint, fixture/elevation, laps, exclusions, split rule, measurement lineage, replan reason, and reserve eligibility; TASK-0010/TASK-0011 remain user-confirmed deferred-v2 executable:false zero-v1-SLOC reserves, TASK-0017 metadata is exact, and TASK-0012 depends on TASK-0017 and freezes post-TASK-0017 actual measurement.",
     "TASK-0006 production SLOC delta is exactly 0 and cumulative measured baseline remains exactly 751.",
     "TASK-0009 and TASK-0012 apply the deterministic same-task/same-lap/earlier-file/smaller-sequence correction predicate before effective values.",
     "Every independent REVIEW and QA runs the focused checks plus GOCACHE=\"$(mktemp -d)\" go test ./..., gofmt, git diff --check, and jq JSON validation as applicable.",
-    "Forecasts, approved post-trigger stops, target/hard reserves, mandatory controls, exact shedding order, and no-compression rules remain binding."
+    "TASK-0017's +55 / projected 1308 forecast is not an implementation or E2E result; forecasts, approved post-trigger stops, target/hard reserves (1500/1800), mandatory controls, exact shedding order, and no-compression rules remain binding."
   ],
   "human_gate_evidence": {
     "review_checklist": "Record independent contract/index comparison, fixture and focused/full checks, correction predicate, production-SLOC count, caps/reserves, and no-compression/guardrail compliance.",
@@ -437,9 +463,9 @@
     "ready_otp_runtime_assembly": "TASK-0013",
     "production_daemon_seed_and_lifecycle": "TASK-0015",
     "per_sudo_live_check_and_no_cache": "TASK-0008",
+    "dedicated_socket_ownership_and_pam_peer_identity_handoff": "TASK-0017",
     "first_zero_sloc_measurement_gate": "TASK-0009",
-    "local_push_policy_and_validation": "TASK-0010",
-    "restricted_non_force_push_token_custody_and_registration": "TASK-0011",
+    "v1_push_drop_deferred_v2_reserve": "TASK-0010/TASK-0011",
     "final_measurement_and_later_reserve_gate": "TASK-0012",
     "minimal_audit_and_source_free_attestation": "MILESTONE-audit-attestation",
     "manual_canary_and_rollback_evidence": "MILESTONE-manual-canary-rollback"
