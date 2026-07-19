@@ -19,6 +19,9 @@ func TestReadRequestRejectsMalformedFrames(t *testing.T) {
 		"missing operation": frame([]byte(`{"version":1}`)),
 		"unknown operation": frame([]byte(`{"version":1,"operation":"other"}`)),
 		"wrong version":     frame([]byte(`{"version":2,"operation":"ready"}`)),
+		"authorize payload": frame([]byte(`{"version":1,"operation":"authorize","payload":{}}`)),
+		"authorize null":    frame([]byte(`{"version":1,"operation":"authorize","payload":null}`)),
+		"authorize version": frame([]byte(`{"version":2,"operation":"authorize"}`)),
 		"trailing json":     frame([]byte(`{"version":1,"operation":"ready"}{}`)),
 	}
 	for name, input := range tests {
@@ -27,6 +30,20 @@ func TestReadRequestRejectsMalformedFrames(t *testing.T) {
 				t.Fatal("malformed frame was accepted")
 			}
 		})
+	}
+}
+
+func TestAuthorizeProtocolAdmission(t *testing.T) {
+	request := []byte(`{"version":1,"operation":"authorize"}`)
+	decoded, err := readRequest(bytes.NewReader(frame(request)))
+	if err != nil || decoded.Operation != OperationAuthorize || len(decoded.Payload) != 0 {
+		t.Fatalf("payload-free authorize rejected: request=%+v err=%v", decoded, err)
+	}
+	for _, payload := range []string{`{}`, `null`, `[]`, `"authorize"`, `1`} {
+		body := []byte(`{"version":1,"operation":"authorize","payload":` + payload + `}`)
+		if _, err := readRequest(bytes.NewReader(frame(body))); !errors.Is(err, ErrProtocol) {
+			t.Fatalf("payload %s accepted with err=%v", payload, err)
+		}
 	}
 }
 
@@ -58,6 +75,19 @@ func TestRequestRoundTripAndGenericErrors(t *testing.T) {
 	}
 	if err := writeRequest(&bytes.Buffer{}, Request{}); !errors.Is(err, ErrProtocol) {
 		t.Fatalf("invalid request error = %v", err)
+	}
+	var authorize bytes.Buffer
+	if err := writeRequest(&authorize, Request{Version: ProtocolVersion, Operation: OperationAuthorize}); err != nil {
+		t.Fatalf("payload-free authorize write failed: %v", err)
+	}
+	decoded, err = readRequest(&authorize)
+	if err != nil || decoded.Operation != OperationAuthorize || len(decoded.Payload) != 0 {
+		t.Fatalf("authorize round trip failed: request=%+v err=%v", decoded, err)
+	}
+	for _, payload := range [][]byte{[]byte(`{}`), []byte(`null`), []byte(`"x"`)} {
+		if err := writeRequest(&bytes.Buffer{}, Request{Version: ProtocolVersion, Operation: OperationAuthorize, Payload: payload}); !errors.Is(err, ErrProtocol) {
+			t.Fatalf("authorize payload write accepted %q: %v", payload, err)
+		}
 	}
 }
 

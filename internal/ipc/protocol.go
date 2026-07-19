@@ -10,10 +10,11 @@ import (
 )
 
 const (
-	ProtocolVersion = uint16(1)
-	MaxFrameBytes   = 4096
-	OperationReady  = "ready"
-	OperationOTP    = "otp"
+	ProtocolVersion    = uint16(1)
+	MaxFrameBytes      = 4096
+	OperationReady     = "ready"
+	OperationOTP       = "otp"
+	OperationAuthorize = "authorize"
 )
 
 var (
@@ -42,7 +43,8 @@ func readRequest(reader io.Reader) (Request, error) {
 	if err := decodeStrict(body, &request); err != nil {
 		return Request{}, ErrProtocol
 	}
-	if request.Version != ProtocolVersion || !validOperation(request.Operation) {
+	if request.Version != ProtocolVersion || !validOperation(request.Operation) ||
+		(request.Operation == OperationAuthorize && len(request.Payload) != 0) {
 		return Request{}, ErrProtocol
 	}
 	return request, nil
@@ -61,7 +63,8 @@ func readResponse(reader io.Reader) (Response, error) {
 }
 
 func writeRequest(writer io.Writer, request Request) error {
-	if request.Version != ProtocolVersion || !validOperation(request.Operation) {
+	if request.Version != ProtocolVersion || !validOperation(request.Operation) ||
+		(request.Operation == OperationAuthorize && len(request.Payload) != 0) {
 		return ErrProtocol
 	}
 	return writeJSONFrame(writer, request)
@@ -128,5 +131,5 @@ func decodeStrict(body []byte, value any) error {
 }
 
 func validOperation(operation string) bool {
-	return operation == OperationReady || operation == OperationOTP
+	return operation == OperationReady || operation == OperationOTP || operation == OperationAuthorize
 }

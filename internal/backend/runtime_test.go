@@ -115,6 +115,181 @@ func TestReadyOTPExactAdmissionAndState(t *testing.T) {
 	assertDenied(t, response, err)
 }
 
+func TestAuthorizeActiveLeaseBoundary(t *testing.T) {
+	secret := []byte("authorize-boundary-secret")
+	clock := &testClock{now: time.Unix(1_700_400_000, 0)}
+	runtime, err := newRuntime(secret, clock)
+	if err != nil {
+		t.Fatal(err)
+	}
+	request := testRequest(ipc.OperationAuthorize, nil)
+	response, err := runtime.Handle(context.Background(), request)
+	assertDenied(t, response, err)
+	response, err = runtime.Handle(context.Background(), testRequest(ipc.OperationReady, nil))
+	assertAccepted(t, response, err)
+	clock.advance(30 * time.Second)
+	response, err = runtime.Handle(context.Background(), testRequest(ipc.OperationOTP, otpPayload(secret, clock.Now())))
+	assertAccepted(t, response, err)
+	response, err = runtime.Handle(context.Background(), request)
+	assertAccepted(t, response, err)
+	clock.advance(300*time.Second - time.Nanosecond)
+	response, err = runtime.Handle(context.Background(), request)
+	assertAccepted(t, response, err)
+	clock.advance(time.Nanosecond)
+	response, err = runtime.Handle(context.Background(), request)
+	assertDenied(t, response, err)
+	clock.advance(30 * time.Second)
+	response, err = runtime.Handle(context.Background(), request)
+	assertDenied(t, response, err)
+}
+
+func TestAuthorizeFreshRuntimeDenies(t *testing.T) {
+	secret := []byte("authorize-fresh-runtime-secret")
+	clock := &testClock{now: time.Unix(1_700_500_000, 0)}
+	active, err := newRuntime(secret, clock)
+	if err != nil {
+		t.Fatal(err)
+	}
+	response, err := active.Handle(context.Background(), testRequest(ipc.OperationReady, nil))
+	assertAccepted(t, response, err)
+	clock.advance(30 * time.Second)
+	response, err = active.Handle(context.Background(), testRequest(ipc.OperationOTP, otpPayload(secret, clock.Now())))
+	assertAccepted(t, response, err)
+	response, err = active.Handle(context.Background(), testRequest(ipc.OperationAuthorize, nil))
+	assertAccepted(t, response, err)
+
+	fresh, err := newRuntime(secret, clock)
+	if err != nil {
+		t.Fatal(err)
+	}
+	response, err = fresh.Handle(context.Background(), testRequest(ipc.OperationAuthorize, nil))
+	assertDenied(t, response, err)
+}
+
+func TestAuthorizePayloadAndReadinessOTPNonInterference(t *testing.T) {
+	secret := []byte("authorize-noninterference-secret")
+	clock := &testClock{now: time.Unix(1_700_600_000, 0)}
+	runtime, err := newRuntime(secret, clock)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, payload := range [][]byte{[]byte(`{}`), []byte(`null`), []byte(`[]`), []byte(`"authorize"`), []byte(" ")} {
+		response, err := runtime.Handle(context.Background(), testRequest(ipc.OperationAuthorize, payload))
+		assertDenied(t, response, err)
+	}
+	response, err := runtime.Handle(context.Background(), testRequest(ipc.OperationOTP, otpPayload(secret, clock.Now())))
+	assertDenied(t, response, err)
+	response, err = runtime.Handle(context.Background(), testRequest(ipc.OperationReady, nil))
+	assertAccepted(t, response, err)
+	clock.advance(30 * time.Second)
+	response, err = runtime.Handle(context.Background(), testRequest(ipc.OperationAuthorize, nil))
+	assertDenied(t, response, err)
+	response, err = runtime.Handle(context.Background(), testRequest(ipc.OperationOTP, otpPayload(secret, clock.Now())))
+	assertAccepted(t, response, err)
+	response, err = runtime.Handle(context.Background(), testRequest(ipc.OperationAuthorize, nil))
+	assertAccepted(t, response, err)
+	response, err = runtime.Handle(context.Background(), testRequest(ipc.OperationReady, nil))
+	assertDenied(t, response, err)
+}
+
+func authorizeActiveRuntime(t *testing.T, secret []byte, clock *testClock) *Runtime {
+	t.Helper()
+	runtime, err := newRuntime(secret, clock)
+	if err != nil {
+		t.Fatal(err)
+	}
+	response, err := runtime.Handle(context.Background(), testRequest(ipc.OperationReady, nil))
+	assertAccepted(t, response, err)
+	clock.advance(30 * time.Second)
+	response, err = runtime.Handle(context.Background(), testRequest(ipc.OperationOTP, otpPayload(secret, clock.Now())))
+	assertAccepted(t, response, err)
+	return runtime
+}
+
+func TestAuthorizeCallerCancellationFailsClosed(t *testing.T) {
+	clock := &testClock{now: time.Unix(1_700_700_000, 0)}
+	runtime := authorizeActiveRuntime(t, []byte("authorize-cancel-secret"), clock)
+	decision := make(chan bool, 1)
+	release := make(chan struct{})
+	runtime.beforePublish = func(ok bool) {
+		decision <- ok
+		<-release
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	result := make(chan ipc.Response, 1)
+	go func() {
+		response, _ := runtime.Handle(ctx, testRequest(ipc.OperationAuthorize, nil))
+		result <- response
+	}()
+	select {
+	case ok := <-decision:
+		if !ok {
+			t.Fatal("authorize decision was not positive")
+		}
+	case <-time.After(time.Second):
+		t.Fatal("authorize did not reach publication barrier")
+	}
+	cancel()
+	close(release)
+	assertDenied(t, <-result, nil)
+}
+
+func TestAuthorizeExpiryAndCloseRaceFailsClosed(t *testing.T) {
+	t.Run("expiry", func(t *testing.T) {
+		clock := &testClock{now: time.Unix(1_700_800_000, 0)}
+		runtime := authorizeActiveRuntime(t, []byte("authorize-expiry-race-secret"), clock)
+		decision := make(chan bool, 1)
+		release := make(chan struct{})
+		runtime.beforePublish = func(ok bool) {
+			decision <- ok
+			<-release
+		}
+		result := make(chan ipc.Response, 1)
+		go func() {
+			response, _ := runtime.Handle(context.Background(), testRequest(ipc.OperationAuthorize, nil))
+			result <- response
+		}()
+		select {
+		case ok := <-decision:
+			if !ok {
+				t.Fatal("authorize decision was not positive")
+			}
+		case <-time.After(time.Second):
+			t.Fatal("authorize did not reach publication barrier")
+		}
+		clock.advance(300 * time.Second)
+		close(release)
+		assertDenied(t, <-result, nil)
+	})
+
+	t.Run("close", func(t *testing.T) {
+		clock := &testClock{now: time.Unix(1_700_900_000, 0)}
+		runtime := authorizeActiveRuntime(t, []byte("authorize-close-race-secret"), clock)
+		decision := make(chan bool, 1)
+		release := make(chan struct{})
+		runtime.beforePublish = func(ok bool) {
+			decision <- ok
+			<-release
+		}
+		result := make(chan ipc.Response, 1)
+		go func() {
+			response, _ := runtime.Handle(context.Background(), testRequest(ipc.OperationAuthorize, nil))
+			result <- response
+		}()
+		select {
+		case ok := <-decision:
+			if !ok {
+				t.Fatal("authorize decision was not positive")
+			}
+		case <-time.After(time.Second):
+			t.Fatal("authorize did not reach publication barrier")
+		}
+		runtime.Close()
+		close(release)
+		assertDenied(t, <-result, nil)
+	})
+}
+
 func TestVersionContextAndRedaction(t *testing.T) {
 	secret := []byte("UNIQUE-SECRET-MARKER")
 	runtime, err := New(secret)
@@ -179,7 +354,7 @@ func TestRegisterBoundsAndFixedAllowlist(t *testing.T) {
 	called := 0
 	handler := func(context.Context, ipc.Request) bool { called++; return true }
 	if err := runtime.Register("audit", handler); err != nil {
-		t.Fatalf("third registration: %v", err)
+		t.Fatalf("custom registration: %v", err)
 	}
 	for _, operation := range []string{"", "Audit", "a", "a!", "a.", strings.Repeat("a", 17)} {
 		if err := runtime.Register(operation, handler); err == nil {
@@ -190,13 +365,15 @@ func TestRegisterBoundsAndFixedAllowlist(t *testing.T) {
 		t.Fatal("accepted duplicate")
 	}
 	if err := runtime.Register("fourth", handler); err == nil {
-		t.Fatal("accepted fourth slot")
+		t.Fatal("accepted second custom slot")
 	}
 	response, err := runtime.Handle(context.Background(), testRequest("audit", nil))
 	assertDenied(t, response, err)
 	if called != 0 {
-		t.Fatal("registered third operation was dispatched")
+		t.Fatal("registered custom operation was dispatched")
 	}
+	response, err = runtime.Handle(context.Background(), testRequest(ipc.OperationAuthorize, nil))
+	assertDenied(t, response, err)
 	runtime.Close()
 	if err := runtime.Register("later", handler); err == nil {
 		t.Fatal("accepted post-close registration")
