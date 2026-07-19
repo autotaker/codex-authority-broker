@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	maxOperations = 3
+	maxOperations = 4
 	maxNameBytes  = 16
 	otpBytes      = 17
 	otpPrefix     = `{"code":"`
@@ -23,10 +23,11 @@ type Handler func(context.Context, ipc.Request) bool
 
 // Runtime owns one process-local lease state and fixed IPC routing.
 type Runtime struct {
-	mu         sync.Mutex
-	closed     bool
-	handlers   map[string]Handler
-	beforeGate func()
+	mu            sync.Mutex
+	closed        bool
+	handlers      map[string]Handler
+	beforeGate    func()
+	beforePublish func(bool)
 
 	shutdown       context.Context
 	shutdownCancel context.CancelFunc
@@ -56,6 +57,7 @@ func newRuntime(secret []byte, clock lease.Clock) (*Runtime, error) {
 	}
 	runtime.handlers[ipc.OperationReady] = runtime.handleReady
 	runtime.handlers[ipc.OperationOTP] = runtime.handleOTP
+	runtime.handlers[ipc.OperationAuthorize] = runtime.handleAuthorize
 	return runtime, nil
 }
 
@@ -77,7 +79,7 @@ func (r *Runtime) Handle(ctx context.Context, request ipc.Request) (ipc.Response
 	if r == nil || ctx == nil || ctx.Err() != nil || request.Version != ipc.ProtocolVersion {
 		return denied, nil
 	}
-	if request.Operation != ipc.OperationReady && request.Operation != ipc.OperationOTP {
+	if request.Operation != ipc.OperationReady && request.Operation != ipc.OperationOTP && request.Operation != ipc.OperationAuthorize {
 		return denied, nil
 	}
 	if r.beforeGate != nil {
@@ -104,12 +106,16 @@ func (r *Runtime) Handle(ctx context.Context, request ipc.Request) (ipc.Response
 	ok := handler(callCtx, request)
 	stopCancel()
 	cancelCall()
+	if r.beforePublish != nil {
+		r.beforePublish(ok)
+	}
 	r.mu.Lock()
 	closed := r.closed
 	shutdown := r.shutdown.Err() != nil
 	caller := ctx.Err() != nil
+	leaseActive := request.Operation != ipc.OperationAuthorize || (r.state != nil && r.state.Active())
 	r.mu.Unlock()
-	if closed || shutdown || caller || !ok {
+	if closed || shutdown || caller || !ok || !leaseActive {
 		return denied, nil
 	}
 	return ipc.Response{OK: true}, nil
@@ -161,6 +167,13 @@ func (r *Runtime) handleOTP(ctx context.Context, request ipc.Request) bool {
 	}
 	r.challenge = lease.Challenge{}
 	return true
+}
+
+func (r *Runtime) handleAuthorize(ctx context.Context, request ipc.Request) bool {
+	if ctx == nil || ctx.Err() != nil || len(request.Payload) != 0 || r.state == nil {
+		return false
+	}
+	return r.state.Active() && ctx.Err() == nil
 }
 
 func validOperationName(operation string) bool {
