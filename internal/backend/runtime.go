@@ -110,13 +110,13 @@ func (r *Runtime) Handle(ctx context.Context, request ipc.Request) (ipc.Response
 		r.auditMu.Lock()
 		defer r.auditMu.Unlock()
 		if !audited {
-			r.Close()
+			r.closeUnderAudit()
 			return denied, nil
 		}
 	}
 	id := r.auditID.Add(1)
-	if audited && id == 0 {
-		r.Close()
+	if r.audit != nil && id == 0 {
+		r.closeUnderAudit()
 		return denied, nil
 	}
 	if r.beforeGate != nil {
@@ -134,15 +134,13 @@ func (r *Runtime) Handle(ctx context.Context, request ipc.Request) (ipc.Response
 	}
 	callCtx, cancelCall := context.WithCancel(ctx)
 	stopCancel := context.AfterFunc(r.shutdown, cancelCall)
+	defer stopCancel()
+	defer cancelCall()
 	r.mu.Unlock()
 	if callCtx.Err() != nil {
-		stopCancel()
-		cancelCall()
 		return denied, nil
 	}
 	ok := handler(callCtx, request)
-	stopCancel()
-	cancelCall()
 	if r.beforePublish != nil {
 		r.beforePublish(ok)
 	}
@@ -154,7 +152,7 @@ func (r *Runtime) Handle(ctx context.Context, request ipc.Request) (ipc.Response
 	final := !r.closed && r.shutdown.Err() == nil && ctx.Err() == nil && ok && leaseActive
 	r.mu.Unlock()
 	if audited && !r.writeAudit(id, uid, request.Operation, final, deadline) {
-		r.Close()
+		r.closeUnderAudit()
 		final = false
 	}
 	if !final {
@@ -181,17 +179,20 @@ func (r *Runtime) writeAudit(id uint64, uid uint32, scope string, allow bool, de
 	return err == nil && n == len(data)
 }
 
+func (r *Runtime) closeUnderAudit() {
+	r.mu.Lock()
+	r.closed = true
+	r.shutdownCancel()
+	r.mu.Unlock()
+}
+
 // Close makes all new and in-flight calls fail closed; it is idempotent.
 func (r *Runtime) Close() {
-	if r == nil {
-		return
+	if r != nil {
+		r.auditMu.Lock()
+		r.closeUnderAudit()
+		r.auditMu.Unlock()
 	}
-	r.mu.Lock()
-	if !r.closed {
-		r.closed = true
-		r.shutdownCancel()
-	}
-	r.mu.Unlock()
 }
 
 func (r *Runtime) handleReady(ctx context.Context, request ipc.Request) bool {

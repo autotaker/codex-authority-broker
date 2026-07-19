@@ -212,6 +212,7 @@ type blockingAuditWriter struct {
 	lines   [][]byte
 	entered chan struct{}
 	release chan struct{}
+	blockAt int
 }
 
 func (w *blockingAuditWriter) Write(data []byte) (int, error) {
@@ -220,7 +221,7 @@ func (w *blockingAuditWriter) Write(data []byte) (int, error) {
 	w.lines = append(w.lines, append([]byte(nil), data...))
 	call := w.calls
 	w.mu.Unlock()
-	if call == 2 {
+	if call == w.blockAt {
 		close(w.entered)
 		<-w.release
 	}
@@ -230,7 +231,7 @@ func (w *blockingAuditWriter) Write(data []byte) (int, error) {
 func TestOTPAuthorityWaitsForSuccessfulAuditWrite(t *testing.T) {
 	secret := []byte("audit-publication-barrier")
 	clock := &testClock{now: time.Unix(1_701_200_000, 0)}
-	writer := &blockingAuditWriter{entered: make(chan struct{}), release: make(chan struct{})}
+	writer := &blockingAuditWriter{entered: make(chan struct{}), release: make(chan struct{}), blockAt: 2}
 	runtime, err := newRuntimeWithAudit(secret, clock, writer)
 	if err != nil {
 		t.Fatal(err)
@@ -280,6 +281,41 @@ func TestOTPAuthorityWaitsForSuccessfulAuditWrite(t *testing.T) {
 	}
 }
 
+func TestCloseWaitsForAuditPublication(t *testing.T) {
+	writer := &blockingAuditWriter{entered: make(chan struct{}), release: make(chan struct{}), blockAt: 1}
+	runtime, err := newRuntimeWithAudit([]byte("audit-close-barrier"), nil, writer)
+	if err != nil {
+		t.Fatal(err)
+	}
+	client := startAuditServer(t, runtime)
+	done := make(chan ipc.Response, 1)
+	go func() {
+		response, _ := client.Call(context.Background(), testRequest(ipc.OperationReady, nil))
+		done <- response
+	}()
+	select {
+	case <-writer.entered:
+	case <-time.After(time.Second):
+		t.Fatal("audit write did not reach publication barrier")
+	}
+	closed := make(chan struct{})
+	go func() { runtime.Close(); close(closed) }()
+	select {
+	case <-closed:
+		t.Fatal("Close completed before audit publication")
+	case <-time.After(50 * time.Millisecond):
+	}
+	close(writer.release)
+	if response := <-done; !response.OK {
+		t.Fatal("successfully audited decision was denied")
+	}
+	select {
+	case <-closed:
+	case <-time.After(time.Second):
+		t.Fatal("Close did not complete after audit publication")
+	}
+}
+
 func TestAuditSequenceOverflowClosesWithoutWrite(t *testing.T) {
 	var sink bytes.Buffer
 	runtime, err := newRuntimeWithAudit([]byte("audit-overflow-fixture"), nil, &sink)
@@ -321,7 +357,7 @@ func TestClosureBeforeAuditWritesDeny(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	runtime.beforePublish = func(bool) { runtime.Close() }
+	runtime.beforePublish = func(bool) { runtime.closeUnderAudit() }
 	client := startAuditServer(t, runtime)
 	if response := auditCall(t, client, testRequest(ipc.OperationReady, nil)); response.OK {
 		t.Fatal("closed decision was published as allow")

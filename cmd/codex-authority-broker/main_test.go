@@ -54,12 +54,7 @@ func repositoryPath(parts ...string) string {
 	return filepath.Join(append([]string{"..", ".."}, parts...)...)
 }
 
-func TestReleaseWorkflowPinsPermissionsAndPayload(t *testing.T) {
-	workflow, err := os.ReadFile(repositoryPath(".github", "workflows", "release.yml"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	text := string(workflow)
+func validateReleaseWorkflow(text string) error {
 	pins := []string{
 		"actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0",
 		"actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0",
@@ -68,21 +63,21 @@ func TestReleaseWorkflowPinsPermissionsAndPayload(t *testing.T) {
 	}
 	for _, pin := range pins {
 		if strings.Count(text, pin) != 1 {
-			t.Fatalf("workflow pin missing or duplicated: %s", pin)
+			return fmt.Errorf("workflow pin missing or duplicated: %s", pin)
 		}
 	}
 	uses := regexp.MustCompile(`(?m)^\s*-?\s*uses:\s*([^\s]+)`).FindAllStringSubmatch(text, -1)
 	if len(uses) != len(pins) {
-		t.Fatalf("executable actions = %d", len(uses))
+		return fmt.Errorf("executable actions = %d", len(uses))
 	}
 	for _, match := range uses {
 		if !regexp.MustCompile(`^actions/[a-z0-9-]+@[0-9a-f]{40}$`).MatchString(match[1]) {
-			t.Fatalf("action is not an official full SHA: %s", match[1])
+			return fmt.Errorf("action is not an official full SHA: %s", match[1])
 		}
 	}
 	permissions := "permissions:\n  contents: read\n  attestations: write\n  id-token: write\n  artifact-metadata: write\n"
 	if strings.Count(text, permissions) != 1 || strings.Contains(text, "secrets.") {
-		t.Fatal("workflow permissions or secret boundary changed")
+		return errors.New("workflow permissions or secret boundary changed")
 	}
 	for _, required := range []string{
 		"CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -o staging/bin/codex-authority-broker ./cmd/codex-authority-broker",
@@ -94,13 +89,43 @@ func TestReleaseWorkflowPinsPermissionsAndPayload(t *testing.T) {
 		"cache: false",
 		"workflow_dispatch:",
 		"branches: [main]",
+		"tar --sort=name --format=gnu --mtime=\"@${SOURCE_DATE_EPOCH}\" --owner=0 --group=0 --numeric-owner -cf - -C staging SHA256SUMS bin/codex-authority bin/codex-authority-broker bin/codex-authority-sudo deploy/pam/codex-authority deploy/sudo/codex-authority deploy/systemd/codex-authority-broker.service | gzip -n > \"$ARCHIVE\"",
+		"path: |\n            codex-authority-linux-amd64.tar.gz\n            SHA256SUMS",
 	} {
 		if strings.Count(text, required) != 1 {
-			t.Fatalf("workflow requirement missing or duplicated: %s", required)
+			return fmt.Errorf("workflow requirement missing or duplicated: %s", required)
 		}
 	}
 	if strings.Count(text, " go build ") != 3 || strings.Contains(text, "@v") {
-		t.Fatal("workflow target count or immutable pinning changed")
+		return errors.New("workflow target count or immutable pinning changed")
+	}
+	return nil
+}
+
+func TestReleaseWorkflowPinsPermissionsAndPayload(t *testing.T) {
+	workflow, err := os.ReadFile(repositoryPath(".github", "workflows", "release.yml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	text := string(workflow)
+	if err := validateReleaseWorkflow(text); err != nil {
+		t.Fatal(err)
+	}
+	mutations := map[string]string{
+		"ref":         strings.Replace(text, "branches: [main]", "branches: [release]", 1),
+		"owner":       strings.Replace(text, "actions/checkout@", "fork/checkout@", 1),
+		"pin":         strings.Replace(text, "9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0", "ac091bb21b7c1c1d1991bb908d89e4e9dddfe3e0", 1),
+		"permission":  strings.Replace(text, "contents: read", "contents: write", 1),
+		"build":       strings.Replace(text, "./cmd/codex-authority-sudo", "./cmd/codex-authority", 1),
+		"payload":     strings.Replace(text, "-C staging SHA256SUMS", "-C staging source.go SHA256SUMS", 1),
+		"attestation": strings.Replace(text, "subject-path: codex-authority-linux-amd64.tar.gz", "subject-path: SHA256SUMS", 1),
+	}
+	for name, mutated := range mutations {
+		t.Run(name, func(t *testing.T) {
+			if mutated == text || validateReleaseWorkflow(mutated) == nil {
+				t.Fatal("workflow policy mutation passed")
+			}
+		})
 	}
 	pam, err := os.ReadFile(repositoryPath("deploy", "pam", "codex-authority"))
 	if err != nil {
@@ -121,69 +146,83 @@ func TestReleaseWorkflowPinsPermissionsAndPayload(t *testing.T) {
 	}
 }
 
-func writeReleaseFixture(t *testing.T, root string) map[string][]byte {
-	t.Helper()
-	payloads := make(map[string][]byte)
-	for _, name := range releaseManifest[1:] {
-		data := []byte("fixture:" + name + "\n")
-		path := filepath.Join(root, filepath.FromSlash(name))
-		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
-			t.Fatal(err)
+func releaseRunBlock(workflow string) (string, error) {
+	const marker = "        run: |\n"
+	if strings.Count(workflow, marker) != 1 {
+		return "", errors.New("workflow package run block missing or duplicated")
+	}
+	remainder := strings.SplitN(workflow, marker, 2)[1]
+	var lines []string
+	for _, line := range strings.Split(remainder, "\n") {
+		if !strings.HasPrefix(line, "          ") {
+			break
 		}
-		if err := os.WriteFile(path, data, 0o755); err != nil {
-			t.Fatal(err)
-		}
-		payloads[name] = data
+		lines = append(lines, strings.TrimPrefix(line, "          "))
 	}
-	var sums strings.Builder
-	for _, name := range releaseManifest[1:] {
-		digest := sha256.Sum256(payloads[name])
-		fmt.Fprintf(&sums, "%s  %s\n", hex.EncodeToString(digest[:]), name)
+	if len(lines) == 0 {
+		return "", errors.New("workflow package run block is empty")
 	}
-	checksum := []byte(sums.String())
-	if err := os.WriteFile(filepath.Join(root, "SHA256SUMS"), checksum, 0o644); err != nil {
-		t.Fatal(err)
-	}
-	payloads["SHA256SUMS"] = checksum
-	return payloads
+	return strings.Join(lines, "\n") + "\n", nil
 }
 
-func buildReleaseFixture(t *testing.T, epoch int64) ([]byte, map[string][]byte) {
+func copyReleaseInputs(t *testing.T, destination string) {
+	t.Helper()
+	root, err := filepath.Abs(repositoryPath())
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, name := range []string{"cmd", "internal", "deploy"} {
+		if err := os.CopyFS(filepath.Join(destination, name), os.DirFS(filepath.Join(root, name))); err != nil {
+			t.Fatal(err)
+		}
+	}
+	data, err := os.ReadFile(filepath.Join(root, "go.mod"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(destination, "go.mod"), data, 0o644); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func runReleaseWorkflow(t *testing.T, script, cache string) ([]byte, int64) {
 	t.Helper()
 	root := t.TempDir()
-	payloads := writeReleaseFixture(t, root)
-	archive := filepath.Join(t.TempDir(), "artifact.tar.gz")
-	arguments := []string{"--sort=name", "--format=gnu", fmt.Sprintf("--mtime=@%d", epoch), "--owner=0", "--group=0", "--numeric-owner", "-cf", "-", "-C", root}
-	arguments = append(arguments, releaseManifest...)
-	tarCommand := exec.Command("tar", arguments...)
-	gzipCommand := exec.Command("gzip", "-n")
-	pipe, err := tarCommand.StdoutPipe()
+	copyReleaseInputs(t, root)
+	gitEnv := append(os.Environ(), "GIT_AUTHOR_DATE=1700000000 +0000", "GIT_COMMITTER_DATE=1700000000 +0000")
+	for _, arguments := range [][]string{
+		{"init", "-q"},
+		{"add", "go.mod", "cmd", "internal", "deploy"},
+		{"-c", "user.name=release-test", "-c", "user.email=release@example.invalid", "commit", "-qm", "release fixture"},
+	} {
+		command := exec.Command("git", arguments...)
+		command.Dir = root
+		command.Env = gitEnv
+		if output, err := command.CombinedOutput(); err != nil {
+			t.Fatalf("git fixture %v: %v: %s", arguments, err, output)
+		}
+	}
+	shaCommand := exec.Command("git", "rev-parse", "HEAD")
+	shaCommand.Dir = root
+	shaOutput, err := shaCommand.Output()
 	if err != nil {
 		t.Fatal(err)
 	}
-	gzipCommand.Stdin = pipe
-	output, err := os.Create(archive)
+	command := exec.Command("sh", "-c", script)
+	command.Dir = root
+	command.Env = append(os.Environ(),
+		"ARCHIVE=codex-authority-linux-amd64.tar.gz",
+		"GITHUB_SHA="+strings.TrimSpace(string(shaOutput)),
+		"GOCACHE="+cache,
+	)
+	if output, err := command.CombinedOutput(); err != nil {
+		t.Fatalf("workflow package block: %v: %s", err, output)
+	}
+	archive, err := os.ReadFile(filepath.Join(root, "codex-authority-linux-amd64.tar.gz"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	gzipCommand.Stdout = output
-	if err := gzipCommand.Start(); err != nil {
-		t.Fatal(err)
-	}
-	if err := tarCommand.Run(); err != nil {
-		t.Fatal(err)
-	}
-	if err := gzipCommand.Wait(); err != nil {
-		t.Fatal(err)
-	}
-	if err := output.Close(); err != nil {
-		t.Fatal(err)
-	}
-	data, err := os.ReadFile(archive)
-	if err != nil {
-		t.Fatal(err)
-	}
-	return data, payloads
+	return archive, 1_700_000_000
 }
 
 func validateReleaseArchive(archive []byte, epoch int64) error {
@@ -250,85 +289,91 @@ func validateReleaseArchive(archive []byte, epoch int64) error {
 	return nil
 }
 
-func buildReleaseMutation(t *testing.T, payloads map[string][]byte, names []string, badType string, typeFlag byte, epoch int64) []byte {
+func mutateReleaseArchive(t *testing.T, archive []byte, extraSource, corruptPayload bool) []byte {
 	t.Helper()
-	var archive bytes.Buffer
-	gzipWriter := gzip.NewWriter(&archive)
-	tarWriter := tar.NewWriter(gzipWriter)
-	for _, name := range names {
-		data := payloads[name]
-		if data == nil {
-			data = []byte("unexpected fixture")
+	compressed, err := gzip.NewReader(bytes.NewReader(archive))
+	if err != nil {
+		t.Fatal(err)
+	}
+	reader := tar.NewReader(compressed)
+	var mutated bytes.Buffer
+	gzipWriter := gzip.NewWriter(&mutated)
+	writer := tar.NewWriter(gzipWriter)
+	var epoch time.Time
+	for {
+		header, nextErr := reader.Next()
+		if errors.Is(nextErr, io.EOF) {
+			break
 		}
-		header := &tar.Header{Name: name, Mode: 0o644, Size: int64(len(data)), ModTime: time.Unix(epoch, 0), Typeflag: tar.TypeReg}
-		if name == badType {
-			header.Typeflag = typeFlag
-			header.Size = 0
-			if typeFlag == tar.TypeSymlink {
-				header.Linkname = "bin/codex-authority"
-			}
+		if nextErr != nil {
+			t.Fatal(nextErr)
 		}
-		if err := tarWriter.WriteHeader(header); err != nil {
+		data, readErr := io.ReadAll(reader)
+		if readErr != nil {
+			t.Fatal(readErr)
+		}
+		epoch = header.ModTime
+		if corruptPayload && header.Name == "bin/codex-authority" {
+			data[0] ^= 1
+		}
+		if err := writer.WriteHeader(header); err != nil {
 			t.Fatal(err)
 		}
-		if header.Typeflag == tar.TypeReg {
-			if _, err := tarWriter.Write(data); err != nil {
-				t.Fatal(err)
-			}
+		if _, err := writer.Write(data); err != nil {
+			t.Fatal(err)
 		}
 	}
-	if err := tarWriter.Close(); err != nil {
+	if extraSource {
+		data := []byte("forbidden source fixture\n")
+		header := &tar.Header{Name: "source.go", Mode: 0o644, Size: int64(len(data)), ModTime: epoch, Typeflag: tar.TypeReg}
+		if err := writer.WriteHeader(header); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := writer.Write(data); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := writer.Close(); err != nil {
 		t.Fatal(err)
 	}
 	if err := gzipWriter.Close(); err != nil {
 		t.Fatal(err)
 	}
-	return archive.Bytes()
+	if err := compressed.Close(); err != nil {
+		t.Fatal(err)
+	}
+	return mutated.Bytes()
 }
 
 func TestReleaseArchiveIsDeterministicExactAndSourceFree(t *testing.T) {
-	const epoch = int64(1_700_000_000)
-	first, payloads := buildReleaseFixture(t, epoch)
-	second, _ := buildReleaseFixture(t, epoch)
+	workflow, err := os.ReadFile(repositoryPath(".github", "workflows", "release.yml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	script, err := releaseRunBlock(string(workflow))
+	if err != nil {
+		t.Fatal(err)
+	}
+	cache := filepath.Join(t.TempDir(), "go-cache")
+	first, epoch := runReleaseWorkflow(t, script, cache)
+	second, secondEpoch := runReleaseWorkflow(t, script, cache)
+	if secondEpoch != epoch {
+		t.Fatal("workflow fixture epochs differ")
+	}
 	if sha256.Sum256(first) != sha256.Sum256(second) {
-		t.Fatal("fixed-input archive was not reproducible")
+		t.Fatal("checked-in workflow package block was not reproducible")
 	}
 	if err := validateReleaseArchive(first, epoch); err != nil {
 		t.Fatal(err)
 	}
-	for _, name := range []string{"source.go", "go.mod", ".git/config", "tasks/evidence", "seed.json", "../escape", "/absolute", "bin/extra", "deploy/.hidden"} {
-		names := append(append([]string(nil), releaseManifest...), name)
-		if err := validateReleaseArchive(buildReleaseMutation(t, payloads, names, "", 0, epoch), epoch); err == nil {
-			t.Fatalf("forbidden archive mutation passed: %s", name)
-		}
+	if err := validateReleaseArchive(second, epoch); err != nil {
+		t.Fatal(err)
 	}
-	if err := validateReleaseArchive(buildReleaseMutation(t, payloads, releaseManifest, "bin/codex-authority", tar.TypeSymlink, epoch), epoch); err == nil {
-		t.Fatal("symlink archive mutation passed")
+	if validateReleaseArchive(mutateReleaseArchive(t, first, true, false), epoch) == nil {
+		t.Fatal("forbidden source member mutation passed")
 	}
-	if err := validateReleaseArchive(buildReleaseMutation(t, payloads, releaseManifest, "deploy/systemd/codex-authority-broker.service", tar.TypeDir, epoch), epoch); err == nil {
-		t.Fatal("directory archive mutation passed")
-	}
-	corrupt := make(map[string][]byte, len(payloads))
-	for name, data := range payloads {
-		corrupt[name] = append([]byte(nil), data...)
-	}
-	if corrupt["SHA256SUMS"][0] == '0' {
-		corrupt["SHA256SUMS"][0] = '1'
-	} else {
-		corrupt["SHA256SUMS"][0] = '0'
-	}
-	if err := validateReleaseArchive(buildReleaseMutation(t, corrupt, releaseManifest, "", 0, epoch), epoch); err == nil {
-		t.Fatal("corrupt checksum passed")
-	}
-	duplicate := make(map[string][]byte, len(payloads))
-	for name, data := range payloads {
-		duplicate[name] = append([]byte(nil), data...)
-	}
-	lines := strings.Split(strings.TrimSpace(string(duplicate["SHA256SUMS"])), "\n")
-	lines[len(lines)-1] = lines[0]
-	duplicate["SHA256SUMS"] = []byte(strings.Join(lines, "\n") + "\n")
-	if err := validateReleaseArchive(buildReleaseMutation(t, duplicate, releaseManifest, "", 0, epoch), epoch); err == nil {
-		t.Fatal("duplicate checksum coverage passed")
+	if validateReleaseArchive(mutateReleaseArchive(t, first, false, true), epoch) == nil {
+		t.Fatal("corrupt checksummed payload mutation passed")
 	}
 }
 
