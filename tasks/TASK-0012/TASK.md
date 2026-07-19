@@ -1,10 +1,11 @@
 # TASK-0012: final zero-SLOC measurement and later-reserve gate
 
-**Depends on:** TASK-0011 (merged and PASS).
+**Depends on:** TASK-0009 (merged and PASS).
 
-**Status:** planned and executable.
+**Status:** planned and executable after TASK-0009; no push implementation is
+enabled.
 
-## Contract metadata
+## Replanned contract metadata
 
 ```json
 {
@@ -12,82 +13,64 @@
   "title": "final zero-SLOC measurement and later-reserve gate",
   "status": "planned",
   "executable": true,
-  "depends_on": ["TASK-0011"],
+  "depends_on": ["TASK-0009"],
+  "baseline_production_sloc": 1253,
   "expected_production_sloc": 0,
-  "expected_cumulative_production_sloc": 1490,
+  "expected_cumulative_production_sloc": 1253,
   "target_cumulative_cap": 1500,
   "projected_cap_trigger_sloc": 1495,
   "hard_cumulative_guard": 1800,
   "production_paths": [],
   "test_paths": ["tasks/TASK-0012/MEASUREMENT.md"],
   "entrypoint": null,
-  "fixture_elevation_needs": "Read-only frozen completed TASK-0010/TASK-0011 event snapshot; no elevation, network, product fixture, or operational-log write.",
-  "lap_1": "After TASK-0011 merge, freeze the wave snapshot and regenerate full historical plus wave SLOC/test/time/active/wait/retry/classification evidence, reconcile actual capacity to target 1500 and hard 1800, and record eligibility evidence for later audit/attestation/manual-canary lineage.",
-  "lap_2": "Independent REVIEW and QA each regenerate evidence, run canonical correction and repository-native full Go/format/diff checks, validate actual target/hard reserve, and prove no later DEV is enabled; main owns Git.",
-  "exclusions": ["all product/test implementation", "audit", "attestation", "release", "installer", "canary", "editing canonical log", "enabling later DEV"],
-  "split_stop_rule": "Stop on canonical defects, unexplained cap drift, actual above 1500 without approved contingency disposition, any hard-limit risk, or inability to close REVIEW/QA in Lap 2; later reserve PLAN/DEV remains blocked until this gate passes and merges.",
-  "measurement_lineage": "Apply the exact TASK-0009 correction predicate and raw/effective provenance to the frozen stream; compare measured baseline and wave delta, preserve null reasons, and reconcile actual 1500/1800 capacities without fixed throughput.",
+  "fixture_elevation_needs": "Read-only frozen TASK-0009/v1 event snapshot; no elevation, network, product fixture, or operational-log write.",
+  "lap_1": "After TASK-0009 PASS+merge, freeze the v1 snapshot and regenerate historical/product SLOC, test LOC, stage, cycle, active/wait, retry, null, and raw/effective correction evidence; reconcile 1253 actual against target 1500 and hard 1800.",
+  "lap_2": "Independent REVIEW and QA each regenerate the evidence and run the canonical correction and repository-native full checks; prove TASK-0010/TASK-0011 remain non-executable v2 reserve and no later milestone receives DEV detail; main owns Git.",
+  "exclusions": ["all product/test implementation", "TASK-0010/TASK-0011 push implementation", "audit", "attestation", "release", "installer", "canary", "editing canonical log", "enabling later DEV"],
+  "split_stop_rule": "Stop on canonical defects, unexplained cap drift, actual above 1500, any hard-limit risk, missing independent regeneration, or inability to close REVIEW/QA in Lap 2; later reserve remains blocked.",
+  "measurement_lineage": "Apply TASK-0009's exact correction predicate and raw/effective provenance to the frozen v1 stream; compare measured 1253 baseline and zero delta without fixed throughput or reserve borrowing.",
   "later_reserve_eligibility": "Only after independent REVIEW PASS, independent QA PASS, and main merge may MILESTONE-audit-attestation then MILESTONE-manual-canary-rollback receive PLAN; both remain non-executable beforehand.",
+  "replan_reason": "TASK-0009 measured 1253. Former TASK-0010/TASK-0011 forecasts totalled 283 and would reach 1536, 36 over target; ordered shedding item 7 moves both coupled push Tasks to v2, so this gate measures the direct zero-SLOC v1 wave.",
   "contract_path": "tasks/TASK-0012/TASK.md"
 }
 ```
 
-## Purpose and evidence boundary
+## Purpose and explicit downstream decision
 
-This is the final zero-production-SLOC measurement and later-reserve gate for
-the six-task wave. It measures the immutable historical baseline plus
-TASK-0010/TASK-0011, reconciles actual capacity against the 1500 planning
-target and unconditional 1800 hard limit, and records eligibility evidence for
-the still-non-executable audit/attestation/manual-canary lineage. It does not
-implement or enable later product behavior.
+TASK-0009 measured **1253 actual merged production SLOC** and adds zero.
+Former TASK-0010 (+130) and TASK-0011 (+153) forecasts would reach 1536,
+which is 36 above the mandatory-v1 target 1500. The unconditional hard limit
+1800 is not permission to exceed the target. Ordered shedding items 1–6 have
+no remaining applicable optional scope in the coupled push work, so item 7 is
+selected: **GitHub push moves to v2**. TASK-0010 and TASK-0011 are explicitly
+deferred, non-executable reserves; they cannot provide branch, DEV, PR-ready,
+or production detail in this v1 wave.
 
-The source is the read-only canonical JSONL snapshot. Completed tasks are
-identified only by `lap_completed` with `status == "completed"`; correction
-events are not tasks. Preserve all raw source event IDs, classifications,
-`superseded_by`, null reasons, and effective correction-validated values.
+This Task is consequently the direct final zero-SLOC measurement gate after
+TASK-0009. It records the v1 baseline as `1253 + 0 = 1253`, preserves the
+mandatory TOTP/full-sudo, readiness, fail-closed IPC, live/no-cache sudo,
+secret non-disclosure, readability, and independent-gate boundaries, and
+keeps all later audit/attestation/manual-canary work blocked until this gate
+passes and main merges.
 
-## Preflight and two-Lap delivery
+## Preflight and two-Lap evidence
 
-Preflight requires merged TASK-0011 and a readable frozen completed-wave
-snapshot. A preflight failure is `not_started`, excluded from stage/cycle
-timing, and never imputed as zero.
+Preflight is read-only: freeze the completed TASK-0009/v1 event snapshot,
+verify its SHA-256, 389-line count, JSON parse, unique IDs, and the exact
+same-task/lap/earlier-file/smaller-sequence correction predicate. A failed
+preflight is `not_started`, excluded from timing, and never represented as
+zero.
 
-Lap 1 regenerates full historical and wave SLOC/test/time/active/wait/retry/
-classification evidence, with same-task/lap/stage/attempt start-terminal
-pairs, separate active/wait observations, maximum propagated retries, and
-`ceil(observed_non_preflight_time * 1.20)` only for observable time. It
-reconciles actual reserve and records that later DEV remains blocked.
+Lap 1 regenerates historical and v1 SLOC/test/time/active/wait/retry/null and
+raw/effective classification evidence. Stage timing pairs only same-task,
+same-lap, same-stage, same-attempt starts and terminals; `preflight` is
+excluded; active and wait remain separate; retries are maximum propagated
+values; and only observable non-preflight time receives
+`ceil(observed_ms * 1.20)`.
 
-Apply this deterministic correction check to the frozen stream before deriving
-effective values:
-
-```sh
-EVENTS=/home/ubuntu/git/agent-harness-work/lap30/events.jsonl
-jq -e . "$EVENTS" >/dev/null
-test -z "$(jq -r '.event_id' "$EVENTS" | sort | uniq -d)"
-jq -s -e '
-  to_entries as $rows
-  | all($rows[];
-      if .value.event == "correction" then
-        . as $correction
-        | any($rows[];
-            .key < $correction.key
-            and .value.event_id == $correction.value.annotations.corrects_event_id
-            and .value.task_id == $correction.value.task_id
-            and .value.lap_id == $correction.value.lap_id
-            and .value.sequence < $correction.value.sequence)
-      else true end)
-' "$EVENTS" >/dev/null
-jq -s -e 'map(select(.task_id == "TASK-0001" or .task_id == "TASK-0003" or .task_id == "TASK-0004" or .task_id == "TASK-0005") | select(.event == "lap_completed" and .status == "completed") | .task_id) | unique == ["TASK-0001", "TASK-0003", "TASK-0004", "TASK-0005"]' "$EVENTS" >/dev/null
-```
-
-Every correction must have a nonempty target, earlier file position, matching
-task and lap, and smaller sequence. Invalid edges stop measurement; they never
-rewrite or discard raw history. Only a passing edge may establish
-`superseded_by` and omit a superseded effective value.
-
-Lap 2 has independent REVIEW and QA each regenerate all evidence, validate the
-actual 1500/1800 reserve, prove no later DEV is enabled, and run:
+Lap 2 is independent REVIEW and QA. Each role regenerates the source-ID,
+correction, cohort/terminal, SLOC/cap, stage/null, active/wait, retry, and
+contingency arithmetic and runs:
 
 ```sh
 GOCACHE="$(mktemp -d)" go test ./...
@@ -96,36 +79,23 @@ git diff --check
 jq -e . backlog.json >/dev/null
 ```
 
-Main owns final checks and Git. No operational log, product source, or result
-file is written by TASK-0006 DEV.
+QA must prove that TASK-0010 and TASK-0011 remain `deferred-v2` and
+`executable:false`, that no later milestone receives PLAN/DEV detail, and that
+the measured 1253 baseline is below target and hard limits. Main owns final
+checks, Git, and merge.
 
-## Acceptance, exclusions, and capacity
+## Acceptance, exclusions, and stop rule
 
-- Measured baseline remains exactly 751 and TASK-0006 adds exactly 0
-  production SLOC; wave forecast is cumulative 1490 unless independent
-  evidence changes it.
-- Actual target reserve and hard reserve are independently recomputed; the
-  forecast amounts 10 to 1500 and 310 to 1800 are not implemented SLOC.
-- The later owner lineage is exactly
-  `TASK-0012 measurement PASS+merge -> MILESTONE-audit-attestation ->
-  MILESTONE-manual-canary-rollback`.
-- No later milestone receives PLAN, branch, DEV, or PR-ready detail before
-  this gate passes and merges.
-
-This Task excludes all product/test implementation, audit, attestation,
-release, installer, canary, canonical-log editing, and enabling later DEV.
-
-The planned increment is +0 production SLOC and cumulative 1490; target cap
-1500, post-reestimate stop 1495, hard guard 1800. Stop on canonical defects,
-unexplained cap drift, actual above 1500 without approved contingency
-disposition, any hard-limit risk, or inability to close REVIEW/QA in Lap 2.
-An actual or forecast value above the unconditional 1800 system limit is an
-immediate safe stop. Preserve nulls and classify environment or planning
-failures before retry; never use fixed throughput or compression.
-
-## Gate and later reserve
-
-Independent REVIEW PASS and QA PASS are required, followed by main-owned
-merge. Only then may the audit/attestation milestone be planned; the manual
-canary/rollback milestone remains ordered behind it and both remain
-non-executable until their own future gates.
+- Exactly zero production SLOC is added: `1253 + 0 = 1253`.
+- Historical performance and product-terminal cohorts remain separate; no
+  partial, correction, governance, terminated, unfinished, or `pass`-status
+  TASK-0013 event becomes a product terminal.
+- Null timing retains an explicit reason; no stage, active/wait, retry,
+  classification, contingency, or cap value is inferred from throughput.
+- TASK-0010/TASK-0011 v2 reserve status and the push-to-v2 decision are
+  explicit, not silently selected; mandatory safety and readable structure are
+  preserved.
+- Stop on canonical contradiction, non-reproducible arithmetic, actual above
+  1500, any hard-limit risk, missing independent regeneration, or failed
+  REVIEW/QA. Later reserve remains non-executable until this gate passes and
+  merges.

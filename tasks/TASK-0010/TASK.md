@@ -1,104 +1,66 @@
-# TASK-0010: local push policy and validation
+# TASK-0010: local push policy and validation (v2 deferred)
 
-**Depends on:** TASK-0009 (merged and PASS).
+**Depends on:** TASK-0009 measurement PASS+merge and the explicit v2 replan.
 
-**Status:** planned and executable.
+**Status:** deferred-v2; non-executable.
 
-## Contract metadata
+## Replan metadata
 
 ```json
 {
   "id": "TASK-0010",
   "title": "local push policy and validation",
-  "status": "planned",
-  "executable": true,
+  "status": "deferred-v2",
+  "executable": false,
   "depends_on": ["TASK-0009"],
-  "expected_production_sloc": 130,
-  "expected_cumulative_production_sloc": 1337,
-  "target_cumulative_cap": 1425,
-  "projected_cap_trigger_sloc": 1380,
-  "hard_cumulative_guard": 1500,
+  "baseline_production_sloc": 1253,
+  "expected_production_sloc": 0,
+  "expected_cumulative_production_sloc": 1253,
+  "v2_reserved_production_sloc": 130,
+  "target_cumulative_cap": 1500,
+  "projected_cap_trigger_sloc": 1495,
+  "hard_cumulative_guard": 1800,
   "production_paths": ["internal/push/policy.go", "internal/push/validate.go"],
   "test_paths": ["internal/push/policy_test.go", "internal/push/validate_test.go"],
   "entrypoint": "internal/push/policy.go",
-  "fixture_elevation_needs": "Temporary worktree and local bare repository matrix; no network, credentials, child Git process, or elevation; denied cases must prove no fake transport boundary is crossed.",
-  "lap_1": "After TASK-0009 PASS+merge and approved plans, validate exact configured repository, clean tree, main or task/TASK-* branch, and one-ref update; reject wrong repo/ref, dirty tree, force, tag, delete, multiple-ref, and ambiguous local Git state; run go test ./internal/push.",
-  "lap_2": "Independent REVIEW runs focused tests and repository-native full check; QA independently mutates every local condition and proves each denial cannot cross the fake transport boundary; main owns Git.",
+  "fixture_elevation_needs": "Future v2 replan only: temporary worktree and local bare-repository matrix; no network, credentials, child Git process, or elevation.",
+  "lap_1": "Not authorized while deferred. A future approved v2 PLAN must remeasure the retained readable boundary and prove exact repository, clean tree, permitted branch, one-ref non-force shape, and zero transport on denials.",
+  "lap_2": "Not authorized while deferred. A future approved v2 QA_PLAN must independently review and QA the focused matrix and repository-native checks.",
   "exclusions": ["token custody", "credential helper", "network transport", "Git child process", "backend registration", "sudo", "audit", "release", "installer", "canary"],
-  "split_stop_rule": "Stop if validation requires remote state, credentials, or a second policy language; stop if forecast exceeds the post-reestimate stop 1380, the fixture cannot prove zero transport on denial, or Lap 1 is not review-ready.",
-  "measurement_lineage": "Record exact local fixture state, stage pairs, active/wait, retries, raw/effective classifications, source IDs, null reasons, and time-only contingency; do not infer duration or size from throughput.",
-  "later_reserve_eligibility": "Later audit/attestation/manual-canary reserve remains ineligible until TASK-0012 PASS+merge.",
+  "split_stop_rule": "No v2 DEV starts without a fresh PLAN/QA_PLAN, fresh frozen evidence, explicit ordered-shedding review, readable estimate, and cap proof; never compress or weaken authorization and denial-before-transport safety.",
+  "measurement_lineage": "TASK-0009 measured baseline is 1253. The former +130 forecast is retained only as v2 reserve evidence; no throughput or SLOC velocity is carried forward.",
+  "later_reserve_eligibility": "Later audit/attestation/manual-canary reserve remains blocked until TASK-0012 independently passes REVIEW and QA and main merges it.",
+  "replan_reason": "TASK-0010 + TASK-0011 former forecasts were 283 SLOC; 1253 + 283 = 1536, 36 over the mandatory-v1 1500 target. Ordered shedding item 7 moves the coupled GitHub push capability to v2.",
   "contract_path": "tasks/TASK-0010/TASK.md"
 }
 ```
 
-## Purpose and owned boundary
+## Explicit v2 disposition
 
-Implement only local policy and validation in `internal/push/policy.go` and
-`internal/push/validate.go`, with tests in the two named test paths. Validate
-the exact configured repository, clean tree, `main` or `task/TASK-*` branch,
-and one source/destination ref update. Reject wrong repository/ref, dirty
-tree, force, tag, delete, multiple-ref, and ambiguous local Git state. This
-Task owns no token, credential helper, network transport, or Git child process.
+The frozen TASK-0009 measurement fixes the current merged baseline at **1253
+production SLOC**. The former TASK-0010/TASK-0011 forecasts totalled 283 and
+would reach 1536, which exceeds the mandatory-v1 target of 1500 by 36. The
+unconditional 1800 hard limit is not permission to exceed that target.
 
-## Preflight and two-Lap delivery
+The ordered shedding list was reviewed in order. Items 1–6 have no remaining
+applicable optional scope in the coupled push work, so item 7 is selected:
 
-Preflight requires merged TASK-0009 and approved plans, then prepares a
-temporary worktree/local bare-repository matrix with no network or elevation.
-The execution clock begins only after the fixture and zero-transport denial
-observation are usable; a failed prerequisite is `not_started`.
+**GitHub push capability moves to v2.** TASK-0010 is retained as a named v2
+reserve with its paths and security boundary, but it is not executable. No
+branch, DEV, PR-ready detail, production allocation, or implementation may be
+started from this document. The future policy must retain exact repository and
+ref identity, clean-tree and permitted-branch checks, one-ref non-force
+admission, and denial before any transport boundary; readable idiomatic code
+and mandatory security tests cannot be compressed or removed.
 
-Lap 1 implements the policy and validator and runs:
+TASK-0011 is the coupled v2 reserve and remains blocked behind this deferred
+Task. TASK-0012 is now the direct zero-SLOC final v1 measurement gate after
+TASK-0009, so no speculative TASK-0010 arithmetic remains enabled.
 
-```sh
-go test ./internal/push
-```
+## Future re-entry and gate
 
-The focused matrix mutates repository identity, ref, clean state, force/tag/
-delete/multiple-ref shape, and ambiguous local Git state. Lap 2 is independent
-REVIEW of the focused suite plus the repository-native full check, then QA
-independently mutates each condition and proves denied requests cannot cross a
-fake transport boundary. Main owns Git.
-
-```sh
-GOCACHE="$(mktemp -d)" go test ./...
-test -z "$(gofmt -l $(find cmd internal -type f -name '*.go' -print))"
-git diff --check
-jq -e . backlog.json >/dev/null
-```
-
-## Acceptance and exclusions
-
-- Exactly the configured local repository, clean tree, permitted branch, and
-  one-ref non-force update pass.
-- Every wrong/dirty/force/tag/delete/multiple/ambiguous condition denies
-  before any transport boundary.
-- Local validation does not read remote state, credentials, or network data.
-- The implementation remains idiomatic and does not compress source to fit a
-  cap.
-
-This Task excludes token custody, credential helpers, network transport, Git
-child processes, backend registration, sudo, audit, release, installer, and
-canary work.
-
-## Measurement, caps, and stop rule
-
-The forecast is +130 production SLOC and cumulative 1337; post-reestimate stop
-1380, target cap 1425, hard guard 1500. Record exact fixture state, paired stage
-timing, separate active/wait, propagated retries, raw/effective
-classifications/source IDs, null reasons, preflight exclusion, and time-only
-`ceil(observed_non_preflight_time * 1.20)` contingency. No SLOC/minute or
-fixed throughput sizing is allowed.
-
-Stop if validation requires remote state, credentials, or a second policy
-language; if forecast exceeds 1380; if the fixture cannot prove zero transport
-on denial; or if Lap 1 is not review-ready. Split discovery rather than
-expanding this local boundary. Candidate target/hard overflow stops safely and
-requires the approved shedding/replan order.
-
-## Gate and later reserve
-
-Independent REVIEW PASS and QA PASS are required; a FAIL returns to its
-responsible gate and never merges. Later audit/attestation/manual-canary work
-remains non-executable until TASK-0012 independently passes REVIEW and QA and
-main merges it.
+Re-entry requires a new approved PLAN and independent QA_PLAN based on fresh
+evidence, explicit cap arithmetic against baseline 1253/target 1500/hard
+1800, and a renewed ordered-shedding review. Until then this Task contributes
+zero production SLOC, cannot be started, and does not unlock later reserve
+work. Main owns any future branch, Git, review, QA, and merge actions.
