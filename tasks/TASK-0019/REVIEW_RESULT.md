@@ -44,3 +44,30 @@ Independent REVIEW fails candidate
 - No Makefile exists; unavailable `make check`/`make task-check` targets are a
   repository tooling limitation, not an invented product PASS.
 
+---
+
+## Re-review decision: PASS
+
+Independent re-review passes fixed candidate
+`ef8b346bded352ee0e4714cb72563544b9c392e9` (tree
+`687eb8125d51875b74ad3667fe43e1d3c34c1cfc`). BLOCKING: none.
+
+Both prior blockers are resolved. Public `Close` now serializes on `auditMu`,
+while sink failure, overflow, and missing-context paths use the private
+`closeUnderAudit` path and cannot recursively deadlock. The deterministic
+barrier test proves that close cannot complete during a blocked audit write
+and completes after successful publication. The release test now extracts
+and executes the exact checked-in YAML `run` block twice against real broker,
+CLI, and sudo-helper binaries; it validates deterministic real archives and
+rejects workflow policy, forbidden-member, and checksum mutations.
+
+Reviewer reruns passed the backend race suite, the focused real release
+workflow/archive suite, `go vet ./...`, gofmt, backlog JSON, scope inspection,
+and the complete product/test/workflow/declarative diff. Main independently
+reported socket-capable focused race and full-suite PASS on the same fixed
+commit/tree. Canonical production deltas remain runtime `+57`, IPC `+8`, and
+lease `+6`: total `+71`, cumulative `1478`, within every approved cap. The
+action pins, exact permissions, PAM `seteuid`, systemd restrictions,
+five-field audit/redaction boundary, actor context, immutable deadline, and
+source-free seven-member/six-checksum archive remain intact. The absent Make
+targets remain a classified repository tooling limitation.
