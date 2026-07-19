@@ -7,8 +7,10 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"sync"
+	"syscall"
 	"testing"
 	"time"
 
@@ -25,6 +27,136 @@ type authorizeRecorder struct {
 type authorizeResult struct {
 	response ipc.Response
 	err      error
+}
+
+type fixtureFileInfo struct{ stat syscall.Stat_t }
+
+func (f fixtureFileInfo) Name() string       { return "fixture" }
+func (f fixtureFileInfo) Size() int64        { return 0 }
+func (f fixtureFileInfo) Mode() os.FileMode  { return os.FileMode(f.stat.Mode) }
+func (f fixtureFileInfo) ModTime() time.Time { return time.Time{} }
+func (f fixtureFileInfo) IsDir() bool        { return f.stat.Mode&syscall.S_IFMT == syscall.S_IFDIR }
+func (f fixtureFileInfo) Sys() any           { value := f.stat; return &value }
+
+type identityFixture struct {
+	events       []string
+	paths        []string
+	socketStats  []fixedSocketStat
+	groups       []int
+	gid, egid    int
+	uid, euid    int
+	setgroupsErr error
+	getgroupsErr error
+	setgidErr    error
+	setuidErr    error
+}
+
+func newIdentityFixture() *identityFixture {
+	return &identityFixture{
+		socketStats: []fixedSocketStat{{dev: 1, ino: 2, mode: syscall.S_IFSOCK | 0o600, uid: 1000, gid: 1000}},
+	}
+}
+
+func (f *identityFixture) hooks() identityHooks {
+	return identityHooks{
+		lstat: func(path string) (os.FileInfo, error) {
+			f.paths = append(f.paths, path)
+			if path == defaultSocketDir {
+				return fixtureFileInfo{stat: syscall.Stat_t{Mode: syscall.S_IFDIR | 0o755, Uid: 0, Gid: 0}}, nil
+			}
+			index := len(f.paths) - 2
+			if index < 0 || index >= len(f.socketStats) {
+				index = len(f.socketStats) - 1
+			}
+			if index < 0 {
+				return nil, errors.New("missing fixture socket")
+			}
+			stat := f.socketStats[index]
+			return fixtureFileInfo{stat: syscall.Stat_t{Dev: stat.dev, Ino: stat.ino, Mode: stat.mode, Uid: stat.uid, Gid: stat.gid}}, nil
+		},
+		setgroups: func(groups []int) error {
+			f.events = append(f.events, "groups")
+			if f.setgroupsErr != nil {
+				return f.setgroupsErr
+			}
+			f.groups = append([]int(nil), groups...)
+			return nil
+		},
+		getgroups: func() ([]int, error) {
+			f.events = append(f.events, "groups-empty")
+			if f.getgroupsErr != nil {
+				return nil, f.getgroupsErr
+			}
+			return append([]int(nil), f.groups...), nil
+		},
+		setgid: func(gid int) error {
+			f.events = append(f.events, "gid")
+			if f.setgidErr != nil {
+				return f.setgidErr
+			}
+			f.gid, f.egid = gid, gid
+			return nil
+		},
+		getgid: func() int {
+			f.events = append(f.events, "gid-real")
+			return f.gid
+		},
+		getegid: func() int {
+			f.events = append(f.events, "gid-effective")
+			return f.egid
+		},
+		setuid: func(uid int) error {
+			f.events = append(f.events, "uid")
+			if f.setuidErr != nil {
+				return f.setuidErr
+			}
+			f.uid, f.euid = uid, uid
+			return nil
+		},
+		getuid: func() int {
+			f.events = append(f.events, "uid-real")
+			return f.uid
+		},
+		geteuid: func() int {
+			f.events = append(f.events, "uid-effective")
+			return f.euid
+		},
+	}
+}
+
+func metadataInfo(stat fixedSocketStat) os.FileInfo {
+	return fixtureFileInfo{stat: syscall.Stat_t{
+		Dev: stat.dev, Ino: stat.ino, Mode: stat.mode, Uid: stat.uid, Gid: stat.gid,
+	}}
+}
+
+func metadataLstat(parent fixedSocketStat, sockets []fixedSocketStat, failures map[int]error) func(string) (os.FileInfo, error) {
+	call := 0
+	return func(path string) (os.FileInfo, error) {
+		index := call
+		call++
+		if err := failures[index]; err != nil {
+			return nil, err
+		}
+		if index == 0 {
+			if path != defaultSocketDir {
+				return nil, errors.New("unexpected parent path")
+			}
+			return metadataInfo(parent), nil
+		}
+		if path != defaultSocketPath || index-1 >= len(sockets) {
+			return nil, errors.New("unexpected socket path")
+		}
+		return metadataInfo(sockets[index-1]), nil
+	}
+}
+
+func validParentStat() fixedSocketStat {
+	return fixedSocketStat{dev: 1, ino: 1, mode: syscall.S_IFDIR | 0o755, uid: 0, gid: 0}
+}
+
+func validAuthoritySocketStat() fixedSocketStat {
+	return fixedSocketStat{dev: 1, ino: 2, mode: syscall.S_IFSOCK | 0o660, uid: 1000, gid: 1000}
 }
 
 func (r *authorizeRecorder) call(_ context.Context, request ipc.Request) (ipc.Response, error) {
@@ -63,7 +195,7 @@ func denyResult() authorizeResult {
 func invoke(t *testing.T, recorder *authorizeRecorder, args ...string) (int, string, string) {
 	t.Helper()
 	var stdout, stderr bytes.Buffer
-	status := run(args, strings.NewReader("authority-from-stdin\n"), &stdout, &stderr, recorder.call)
+	status := runWithHooks(args, strings.NewReader("authority-from-stdin\n"), &stdout, &stderr, recorder.call, newIdentityFixture().hooks())
 	return status, stdout.String(), stderr.String()
 }
 
@@ -78,6 +210,182 @@ func requireDenied(t *testing.T, status int, stdout, stderr string) {
 	t.Helper()
 	if status == 0 || stdout != "" || stderr != deniedLine {
 		t.Fatalf("expected bounded deny, status=%d stdout=%q stderr=%q", status, stdout, stderr)
+	}
+}
+
+func TestFixedSocketIdentityParentAndPathAdmission(t *testing.T) {
+	parent := validParentStat()
+	socket := validAuthoritySocketStat()
+	replacement := socket
+	replacement.ino++
+	tests := []struct {
+		name     string
+		parent   fixedSocketStat
+		sockets  []fixedSocketStat
+		failures map[int]error
+		wantID   uint32
+		wantOK   bool
+	}{
+		{name: "valid fixed metadata", parent: parent, sockets: []fixedSocketStat{socket, socket}, wantID: 1000, wantOK: true},
+		{name: "missing parent", parent: parent, sockets: []fixedSocketStat{socket, socket}, failures: map[int]error{0: os.ErrNotExist}},
+		{name: "parent regular", parent: fixedSocketStat{mode: syscall.S_IFREG | 0o755}, sockets: []fixedSocketStat{socket, socket}},
+		{name: "parent symlink", parent: fixedSocketStat{mode: syscall.S_IFLNK | 0o755}, sockets: []fixedSocketStat{socket, socket}},
+		{name: "parent non-root", parent: fixedSocketStat{mode: syscall.S_IFDIR | 0o755, uid: 1}, sockets: []fixedSocketStat{socket, socket}},
+		{name: "parent group writable", parent: fixedSocketStat{mode: syscall.S_IFDIR | 0o775}, sockets: []fixedSocketStat{socket, socket}},
+		{name: "parent world writable", parent: fixedSocketStat{mode: syscall.S_IFDIR | 0o757}, sockets: []fixedSocketStat{socket, socket}},
+		{name: "missing socket", parent: parent, sockets: []fixedSocketStat{socket, socket}, failures: map[int]error{1: os.ErrNotExist}},
+		{name: "socket symlink", parent: parent, sockets: []fixedSocketStat{{mode: syscall.S_IFLNK, uid: 1000, gid: 1000}, socket}},
+		{name: "socket regular", parent: parent, sockets: []fixedSocketStat{{mode: syscall.S_IFREG | 0o660, uid: 1000, gid: 1000}, socket}},
+		{name: "socket directory", parent: parent, sockets: []fixedSocketStat{{mode: syscall.S_IFDIR | 0o660, uid: 1000, gid: 1000}, socket}},
+		{name: "missing final metadata", parent: parent, sockets: []fixedSocketStat{socket, socket}, failures: map[int]error{2: os.ErrNotExist}},
+		{name: "replaced socket", parent: parent, sockets: []fixedSocketStat{socket, replacement}},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			id, ok := fixedSocketIdentity(metadataLstat(test.parent, test.sockets, test.failures))
+			if id != test.wantID || ok != test.wantOK {
+				t.Fatalf("fixedSocketIdentity() = %d, %v; want %d, %v", id, ok, test.wantID, test.wantOK)
+			}
+		})
+	}
+}
+
+func TestFixedSocketIdentityRejectsZeroAndMismatchedUIDGID(t *testing.T) {
+	parent := validParentStat()
+	for _, test := range []struct {
+		name string
+		uid  uint32
+		gid  uint32
+	}{
+		{name: "both zero"},
+		{name: "uid zero", uid: 0, gid: 1000},
+		{name: "gid zero", uid: 1000, gid: 0},
+		{name: "distinct nonzero", uid: 1000, gid: 1001},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			socket := validAuthoritySocketStat()
+			socket.uid, socket.gid = test.uid, test.gid
+			if id, ok := fixedSocketIdentity(metadataLstat(parent, []fixedSocketStat{socket, socket}, nil)); ok || id != 0 {
+				t.Fatalf("identity %d:%d accepted as %d", test.uid, test.gid, id)
+			}
+			fixture := newIdentityFixture()
+			hooks := fixture.hooks()
+			hooks.lstat = metadataLstat(parent, []fixedSocketStat{socket, socket}, nil)
+			calls := 0
+			var stdout, stderr bytes.Buffer
+			status := runWithHooks(nil, nil, &stdout, &stderr, func(context.Context, ipc.Request) (ipc.Response, error) {
+				calls++
+				return ipc.Response{Version: ipc.ProtocolVersion, OK: true}, nil
+			}, hooks)
+			requireDenied(t, status, stdout.String(), stderr.String())
+			if calls != 0 || len(fixture.events) != 0 {
+				t.Fatalf("identity %d:%d performed actions=%v calls=%d", test.uid, test.gid, fixture.events, calls)
+			}
+		})
+	}
+}
+
+func TestRunDropsIdentityBeforeExactlyOneAuthorize(t *testing.T) {
+	fixture := newIdentityFixture()
+	var request ipc.Request
+	callCount := 0
+	call := func(_ context.Context, got ipc.Request) (ipc.Response, error) {
+		fixture.events = append(fixture.events, "call")
+		callCount++
+		request = got
+		return ipc.Response{Version: ipc.ProtocolVersion, OK: true}, nil
+	}
+	var stdout, stderr bytes.Buffer
+	status := runWithHooks([]string{"ignored"}, errorReader{err: errors.New("stdin read")}, &stdout, &stderr, call, fixture.hooks())
+	wantOrder := []string{"groups", "groups-empty", "gid", "gid-real", "gid-effective", "uid", "uid-real", "uid-effective", "call"}
+	if status != 0 || stdout.Len() != 0 || stderr.Len() != 0 || callCount != 1 {
+		t.Fatalf("valid handoff status=%d stdout=%q stderr=%q calls=%d", status, stdout.String(), stderr.String(), callCount)
+	}
+	if !reflect.DeepEqual(fixture.events, wantOrder) {
+		t.Fatalf("handoff order = %v, want %v", fixture.events, wantOrder)
+	}
+	if !reflect.DeepEqual(fixture.paths, []string{defaultSocketDir, defaultSocketPath, defaultSocketPath}) {
+		t.Fatalf("metadata paths = %v", fixture.paths)
+	}
+	requireAuthorizeRequest(t, request)
+}
+
+func TestRunIdentityDropFailuresStopBeforeTransport(t *testing.T) {
+	tests := []struct {
+		name   string
+		mutate func(*identityFixture, *identityHooks)
+		want   []string
+	}{
+		{name: "setgroups", mutate: func(f *identityFixture, _ *identityHooks) { f.setgroupsErr = errors.New("setgroups") }, want: []string{"groups"}},
+		{name: "getgroups", mutate: func(f *identityFixture, _ *identityHooks) { f.getgroupsErr = errors.New("getgroups") }, want: []string{"groups", "groups-empty"}},
+		{name: "residual group", mutate: func(f *identityFixture, hooks *identityHooks) {
+			hooks.getgroups = func() ([]int, error) { f.events = append(f.events, "groups-empty"); return []int{7}, nil }
+		}, want: []string{"groups", "groups-empty"}},
+		{name: "setgid", mutate: func(f *identityFixture, _ *identityHooks) { f.setgidErr = errors.New("setgid") }, want: []string{"groups", "groups-empty", "gid"}},
+		{name: "real gid verification", mutate: func(f *identityFixture, hooks *identityHooks) {
+			hooks.getgid = func() int { f.events = append(f.events, "gid-real"); return 999 }
+		}, want: []string{"groups", "groups-empty", "gid", "gid-real"}},
+		{name: "effective gid verification", mutate: func(f *identityFixture, hooks *identityHooks) {
+			hooks.getegid = func() int { f.events = append(f.events, "gid-effective"); return 999 }
+		}, want: []string{"groups", "groups-empty", "gid", "gid-real", "gid-effective"}},
+		{name: "setuid", mutate: func(f *identityFixture, _ *identityHooks) { f.setuidErr = errors.New("setuid") }, want: []string{"groups", "groups-empty", "gid", "gid-real", "gid-effective", "uid"}},
+		{name: "real uid verification", mutate: func(f *identityFixture, hooks *identityHooks) {
+			hooks.getuid = func() int { f.events = append(f.events, "uid-real"); return 999 }
+		}, want: []string{"groups", "groups-empty", "gid", "gid-real", "gid-effective", "uid", "uid-real"}},
+		{name: "effective uid verification", mutate: func(f *identityFixture, hooks *identityHooks) {
+			hooks.geteuid = func() int { f.events = append(f.events, "uid-effective"); return 999 }
+		}, want: []string{"groups", "groups-empty", "gid", "gid-real", "gid-effective", "uid", "uid-real", "uid-effective"}},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			fixture := newIdentityFixture()
+			hooks := fixture.hooks()
+			test.mutate(fixture, &hooks)
+			calls := 0
+			var stdout, stderr bytes.Buffer
+			status := runWithHooks(nil, nil, &stdout, &stderr, func(context.Context, ipc.Request) (ipc.Response, error) {
+				calls++
+				return ipc.Response{Version: ipc.ProtocolVersion, OK: true}, nil
+			}, hooks)
+			requireDenied(t, status, stdout.String(), stderr.String())
+			if calls != 0 || !reflect.DeepEqual(fixture.events, test.want) {
+				t.Fatalf("failure actions=%v calls=%d, want actions=%v and zero calls", fixture.events, calls, test.want)
+			}
+		})
+	}
+}
+
+func TestRunMetadataFailuresStopBeforeDropAndTransport(t *testing.T) {
+	parent := validParentStat()
+	socket := validAuthoritySocketStat()
+	replacement := socket
+	replacement.ino++
+	for _, test := range []struct {
+		name     string
+		parent   fixedSocketStat
+		sockets  []fixedSocketStat
+		failures map[int]error
+	}{
+		{name: "unsafe parent", parent: fixedSocketStat{mode: syscall.S_IFDIR | 0o777}, sockets: []fixedSocketStat{socket, socket}},
+		{name: "missing socket", parent: parent, sockets: []fixedSocketStat{socket, socket}, failures: map[int]error{1: os.ErrNotExist}},
+		{name: "non-socket", parent: parent, sockets: []fixedSocketStat{{mode: syscall.S_IFREG | 0o600, uid: 1000, gid: 1000}, socket}},
+		{name: "replacement", parent: parent, sockets: []fixedSocketStat{socket, replacement}},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			fixture := newIdentityFixture()
+			hooks := fixture.hooks()
+			hooks.lstat = metadataLstat(test.parent, test.sockets, test.failures)
+			calls := 0
+			var stdout, stderr bytes.Buffer
+			status := runWithHooks(nil, nil, &stdout, &stderr, func(context.Context, ipc.Request) (ipc.Response, error) {
+				calls++
+				return ipc.Response{Version: ipc.ProtocolVersion, OK: true}, nil
+			}, hooks)
+			requireDenied(t, status, stdout.String(), stderr.String())
+			if calls != 0 || len(fixture.events) != 0 {
+				t.Fatalf("metadata denial performed actions=%v calls=%d", fixture.events, calls)
+			}
+		})
 	}
 }
 
@@ -229,12 +537,25 @@ func TestFixtureRollbackAndNoWorkstationMutation(t *testing.T) {
 }
 
 func TestRunNeverReadsStdinOrEnvironmentAuthority(t *testing.T) {
+	const sentinel = "untrusted-pam-identity-sentinel"
+	t.Setenv("PAM_USER", sentinel)
+	t.Setenv("PAM_RUSER", sentinel)
+	t.Setenv("CODEX_AUTHORITY_UID", "4242")
 	recorder := &authorizeRecorder{responses: []authorizeResult{allowResult()}}
 	stdin := errorReader{err: errors.New("stdin must not be read")}
+	fixture := newIdentityFixture()
 	var stdout, stderr bytes.Buffer
-	status := run(nil, stdin, &stdout, &stderr, recorder.call)
-	if status != 0 || recorder.count() != 1 {
-		t.Fatalf("stdin-independent invocation failed: status=%d calls=%d", status, recorder.count())
+	status := runWithHooks([]string{sentinel, "4242"}, stdin, &stdout, &stderr, recorder.call, fixture.hooks())
+	if status != 0 || recorder.count() != 1 || stdout.Len() != 0 || stderr.Len() != 0 {
+		t.Fatalf("untrusted-input-independent invocation failed: status=%d calls=%d stdout=%q stderr=%q", status, recorder.count(), stdout.String(), stderr.String())
+	}
+	if fixture.uid != 1000 || fixture.euid != 1000 || fixture.gid != 1000 || fixture.egid != 1000 {
+		t.Fatalf("selected identity = uid %d/%d gid %d/%d", fixture.uid, fixture.euid, fixture.gid, fixture.egid)
+	}
+	request := recorder.requestsCopy()[0]
+	requireAuthorizeRequest(t, request)
+	if strings.Contains(string(request.Payload), sentinel) {
+		t.Fatal("untrusted identity entered request")
 	}
 }
 
@@ -251,7 +572,7 @@ func TestRunContextIsBounded(t *testing.T) {
 	}
 	var stderr bytes.Buffer
 	start := time.Now()
-	status := run(nil, nil, io.Discard, &stderr, recorder)
+	status := runWithHooks(nil, nil, io.Discard, &stderr, recorder, newIdentityFixture().hooks())
 	if status == 0 || stderr.String() != deniedLine || time.Since(start) > authorityTimeout+time.Second {
 		t.Fatalf("bounded denial failed: status=%d stderr=%q elapsed=%s", status, stderr.String(), time.Since(start))
 	}

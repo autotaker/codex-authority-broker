@@ -112,7 +112,11 @@ func run(ctx context.Context, descriptors seedDescriptors, makeRuntime runtimeFa
 	if err != nil || runtime == nil {
 		return 1
 	}
-	server, err := listen(ipc.Config{Path: socketPath, AllowedUID: uid}, runtime)
+	server, err := listen(ipc.Config{
+		Path:       socketPath,
+		AllowedUID: uid,
+		Access:     &ipc.SocketAccess{OwnerUID: uid, GroupGID: uid},
+	}, runtime)
 	if err != nil || server == nil {
 		if server != nil {
 			_ = server.Close()

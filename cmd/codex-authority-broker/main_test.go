@@ -814,14 +814,16 @@ func TestRunConstructsRuntimeBeforeListen(t *testing.T) {
 }
 func TestRunConfiguresServerBeforeListen(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
+	listenCalls := 0
 	status := run(ctx, newDescriptorFixture(testSeed), func([]byte) (brokerRuntime, error) { return &fakeRuntime{}, nil }, func(config ipc.Config, _ ipc.Backend) (brokerServer, error) {
-		if config.Path != socketPath || config.AllowedUID != 1000 {
-			t.Fatalf("unexpected listener config")
+		listenCalls++
+		if config.Path != socketPath || config.AllowedUID != 1000 || config.Access == nil || config.Access.OwnerUID != 1000 || config.Access.GroupGID != 1000 {
+			t.Fatalf("unexpected listener config: %#v", config)
 		}
 		return &fakeServer{serve: func(context.Context) error { cancel(); return nil }}, nil
 	})
-	if status != 0 {
-		t.Fatalf("configured listener status=%d", status)
+	if status != 0 || listenCalls != 1 {
+		t.Fatalf("configured listener status=%d calls=%d", status, listenCalls)
 	}
 }
 func TestRunClosesServerOnListenError(t *testing.T) {
