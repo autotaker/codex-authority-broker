@@ -32,6 +32,12 @@ type Backend interface {
 type Config struct {
 	Path       string
 	AllowedUID uint32
+	Access     *SocketAccess
+}
+
+type SocketAccess struct {
+	OwnerUID uint32
+	GroupGID uint32
 }
 
 type credentialReader func(*net.UnixConn) (uint32, error)
@@ -91,7 +97,14 @@ func listen(config Config, backend Backend, credential credentialReader) (*Serve
 		_ = removeOwnedSocket(config.Path, identity)
 		return nil, ErrLifecycle
 	}
-	if err := os.Chmod(config.Path, 0o600); err != nil {
+	mode := os.FileMode(0o600)
+	if config.Access != nil {
+		if err := os.Chown(config.Path, int(config.Access.OwnerUID), int(config.Access.GroupGID)); err != nil {
+			return fail()
+		}
+		mode = 0o660
+	}
+	if err := os.Chmod(config.Path, mode); err != nil {
 		return fail()
 	}
 	serverContext, cancel := context.WithCancel(context.Background())
