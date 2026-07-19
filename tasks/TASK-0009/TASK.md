@@ -14,7 +14,7 @@
   "executable": true,
   "depends_on": ["TASK-0008"],
   "expected_production_sloc": 0,
-  "expected_cumulative_production_sloc": 1322,
+  "expected_cumulative_production_sloc": 1270,
   "target_cumulative_cap": 1350,
   "projected_cap_trigger_sloc": 1325,
   "hard_cumulative_guard": 1450,
@@ -22,11 +22,11 @@
   "test_paths": ["tasks/TASK-0009/MEASUREMENT.md"],
   "entrypoint": null,
   "fixture_elevation_needs": "Read-only frozen canonical JSONL snapshot; no elevation, network, product fixture, or operational-log write.",
-  "lap_1": "After TASK-0013, TASK-0015, and TASK-0008 merge, freeze the completed-event snapshot and regenerate provenance-complete historical plus new-wave SLOC/test/stage/active/wait/retry/raw/effective classification evidence, applying ceil(observed non-preflight time * 1.20) only to observable time.",
+  "lap_1": "After TASK-0013, TASK-0015, TASK-0016, and TASK-0008 merge, freeze the completed-event snapshot and regenerate provenance-complete historical plus new-wave SLOC/test/stage/active/wait/retry/raw/effective classification evidence, applying ceil(observed non-preflight time * 1.20) only to observable time.",
   "lap_2": "Independent REVIEW and QA each run canonical parse/unique-ID/correction-edge checks, independently regenerate measurement and cap arithmetic, and run the repository-native full Go/format/diff checks; main owns Git. TASK-0010 through TASK-0012 speculative arithmetic is invalidated and must be explicitly replanned from this evidence; push-to-v2 remains a TASK-0009 decision, never a silent selection.",
   "exclusions": ["all product/test implementation", "audit", "attestation", "release", "installer", "canary", "editing canonical log"],
   "split_stop_rule": "Stop on missing or contradictory canonical evidence, non-reproducible arithmetic, actual cumulative above target 1350, or inability to independently regenerate in Lap 2; classify before retry and do not bypass explicit replanning. Target 1500 may be exceeded only after an explicit later replan; push-to-v2 remains a TASK-0009 decision, never a silent selection.",
-  "measurement_lineage": "Include terminated TASK-0007, unfinished TASK-0014, and completed replacement TASK-0013/TASK-0015 lineage, preserve null with reasons, validate every correction target earlier in file order and same task/lap with smaller sequence, retain raw source IDs and superseded_by, and derive effective values only after validation.",
+  "measurement_lineage": "Include terminated TASK-0007, unfinished TASK-0014, completed replacements TASK-0013/TASK-0015, and requirement-gap prerequisite TASK-0016 lineage, preserve null with reasons, validate every correction target earlier in file order and same task/lap with smaller sequence, retain raw source IDs and superseded_by, and derive effective values only after validation.",
   "later_reserve_eligibility": "Audit/attestation/manual-canary reserve remains non-executable until TASK-0012 PASS+merge; no converted milestone remains simultaneously reserved and executable.",
   "contract_path": "tasks/TASK-0009/TASK.md"
 }
@@ -120,8 +120,8 @@ jq -e . backlog.json >/dev/null
   are separate and correction-provenanced.
 - No fixed SLOC throughput, LOC velocity, average, or imputed timing sizes the
   next contract.
-- The gate adds exactly 0 production SLOC; forecast cumulative production is
-  1322 before independent measurement reconciliation.
+- The gate adds exactly 0 production SLOC; revised forecast cumulative
+  production is 1270 before independent measurement reconciliation.
 
 This Task excludes all product/test implementation, audit, attestation,
 release, installer, canary, and detailed contracts beyond the next bounded
@@ -130,7 +130,7 @@ QA output and is not one of TASK-0006's seven DEV outputs.
 
 ## Measurement, caps, and stop rule
 
-The forecast is +0 production SLOC and cumulative 1322; post-reestimate trigger
+The forecast is +0 production SLOC and cumulative 1270; post-reestimate trigger
 1325, target cap 1350, hard guard 1450. Stop on missing or contradictory canonical
 evidence, non-reproducible arithmetic, actual cumulative above 1350, or
 inability to independently regenerate in Lap 2. Classify before retry and do
