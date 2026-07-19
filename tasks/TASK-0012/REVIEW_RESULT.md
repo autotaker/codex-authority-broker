@@ -21,4 +21,3 @@ Independent REVIEW passes candidate `bc10877d3a6bd45c2520a5c645379de67703ec71`
 
 The one pre-verdict metadata NIT (`planned` versus `in_progress`) was corrected
 by Main before this final fixed candidate and independently verified.
-
