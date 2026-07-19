@@ -166,3 +166,64 @@ current source.
 - SLOC: merged baseline **922**; current stopped evidence candidate **283**;
   observed candidate cumulative **1205**; approved conditional readable
   boundary **280 / 1202**; contract product delta **0**.
+
+---
+
+## Final product review — FAIL
+
+**FAIL (`implementation_defect`).** The candidate is readable and within the
+amended SLOC boundary, and all four Revision 4 code repairs are present, but a
+secret-lifetime ordering requirement is violated and the deterministic test
+suite omits multiple mandatory P0 acceptance rows. Earlier contract-review
+attempts and their decisions remain unchanged above.
+
+### Product scope and measurement
+
+- Reviewed only `cmd/codex-authority-broker/main.go` and
+  `cmd/codex-authority-broker/main_test.go` against TASK-0014, PLAN Revision 4,
+  and QA_PLAN Revision 5. No runtime, IPC, lease, client, contract, backlog,
+  operational-log, or Git change was made by REVIEW.
+- Canonical production SLOC: broker **278**, repository cumulative **1200**;
+  both satisfy the inclusive amended bounds **<=280 / <=1202**.
+- Test file: **535 physical LOC**. No compression, semicolon packing, generated
+  disguise, or out-of-scope production path was found.
+- The four named repairs are implemented: exact `mode&07777 == 0600`; nil
+  guards for factories; non-nil listen-error server close before runtime close;
+  and clean nil Serve only after observed cancellation. The final reader owns
+  the successfully wrapped final descriptor without a second raw-fd close.
+
+### Blocking findings
+
+| ID | Severity | Classification | Finding / required resolution |
+|---|---|---|---|
+| P-001 | blocking | implementation_defect | `run` defers `wipe(secret)` immediately after `loadSeed`, so on a successful runtime construction the caller-owned decoded secret remains live through `listen` and the entire `Serve` lifetime. The approved order is load/validate -> `backend.New` private copy -> wipe owned decoded secret -> listen. Wipe immediately after the runtime factory returns (while retaining all error-path wiping), and add a listener-order test that observes the factory's input buffer is zero before `listen` is invoked. |
+| P-002 | blocking | implementation_defect | The test matrix is not gate-complete. Missing deterministic evidence includes owned buffer wiping and its precise Go-memory limitation; root-open and close-error terminal branches, reader-close error, exact bounds plus boundary+1, valid maximum secret/oversized encoded secret; runtime-factory error and listener-zero-call/config ordering; serve-error/server-close-error; SIGINT and SIGTERM, active-client/concurrent/repeated shutdown, socket replacement identity preservation; restart-without-seed; and existing-client valid OTP plus malformed request behavior. Add channel/barrier and fixture tests for these mandatory rows; the fake-server concurrent-close observation is not production shutdown evidence. |
+
+Descriptor no-follow/CLOEXEC flags, descriptor metadata admission, strict
+duplicate/unknown/trailing JSON rejection, canonical base64 and positive
+uint32 parsing, generic `errSeed`, listen-error close order, and fresh-runtime
+construction are otherwise consistent by source inspection. Returned product
+status contains no secret-bearing diagnostic.
+
+### Independent command evidence
+
+| Command | Result | Classification / exact evidence |
+|---|---|---|
+| `go test ./cmd/codex-authority ./cmd/codex-authority-broker ./internal/backend ./internal/ipc ./internal/lease` | ENVIRONMENT FAIL | Existing CLI integration's nested `go build` failed because VCS status is unavailable in the supplied worktree. Direct build reported `error obtaining VCS status: exit status 128` and recommends `-buildvcs=false`. Broker and backend/IPC/lease packages passed in that run. |
+| `GOFLAGS=-buildvcs=false go test` with the same focused packages | PASS | CLI 0.276s; broker/backend/IPC/lease passed. This single classified retry separates VCS stamping from product behavior. |
+| `go test -count=1 -race ./cmd/codex-authority-broker` | PASS | `ok .../cmd/codex-authority-broker 1.016s`. |
+| `GOFLAGS=-buildvcs=false GOCACHE=$(mktemp -d) go test -count=1 ./...` | PASS | CLI 0.324s; broker 0.004s; backend 0.003s; IPC 0.042s; lease 0.002s, in socket-capable execution. |
+| `go vet ./...` | PASS | no output. |
+| `gofmt -l $(find cmd internal -type f -name '*.go' -print)` | PASS | no output. |
+| `git diff --check` | PASS | no output; candidate files are untracked and were inspected directly. |
+| `make check` | NOT APPLICABLE / ENVIRONMENT | No Makefile/`check` target exists; PLAN explicitly states it is not a required gate. |
+
+### Final accounting
+
+- Changed path: `tasks/TASK-0014/REVIEW_RESULT.md` only.
+- `active_ms=unavailable` (review runtime exposed no reliable turn-start
+  timestamp; duration is not inferred), `wait_ms=0`, `retries=1` (the focused
+  command's classified VCS-stamping rerun).
+- Overall classification: `implementation_defect`; command-environment
+  sub-classification: VCS stamping unavailable for the exact focused command.
+- Product SLOC **278**, cumulative **1200**, test LOC **535 physical**.
