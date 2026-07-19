@@ -177,13 +177,21 @@ E2E. Fixture/elevation waiting is recorded separately from DEV active time.
 
 ## Size, gates, and stop rules
 
-The immutable merged baseline is **1253** production SLOC. The contract's
-readable forecast is **+55**, so projected cumulative is **1308**; **1350**
-is the replan trigger and **1450** the absolute hard guard. Independently
-count nonblank, non-comment executable lines in the two production Go files;
-tests and fixture/process evidence do not count. Stop before/further DEV if
-the forecast or candidate exceeds 1350, reaches 1450, needs compression, or
-needs an unowned path. Never shed fixed-path validation, equal nonzero UID/GID,
+The immutable merged baseline is **1253** production SLOC. The original
+**+55 / 1308** forecast omitted the readable identity-hook, fixed-path
+metadata, and irreversible-drop boundary. Main stopped DEV when the **1350**
+trigger fired. Independent remeasurement of the unchanged four owned paths
+found production net **+145**, projected cumulative **1398**. An independent
+TASK-first QA recheck approved this numeric amendment without changing any
+acceptance condition, security boundary, owned path, evidence mode, or E2E.
+
+Independently count nonblank, non-comment executable lines in the two
+production Go files; tests and fixture/process evidence do not count. The
+remeasured draft has zero additional production allowance. Stop before any
+further DEV that adds a production line, makes net delta exceed +145 or
+cumulative exceed 1398, uses the nominal two-line space below target 1400,
+needs compression, or needs an unowned path. Reaching 1450 remains absolutely
+forbidden. Never shed fixed-path validation, equal nonzero UID/GID,
 group/GID/UID drop, SO_PEERCRED, exactly-one live authorize, no-cache, real
 E2E, redaction, or rollback.
 
@@ -218,3 +226,12 @@ the QA guideline rather than presuming implementation fault.
 | Retry | 0. |
 | Classification | `plan_ready`; no approval or DEV started. |
 | Residual risk | TOCTOU is contained for unprivileged replacement by the fixed root-owned, non-writable parent. A requirement to distrust concurrent root filesystem replacement exceeds current pathname IPC capability and is an explicit split-stop. |
+
+### Remeasurement approval evidence
+
+| Item | Evidence |
+| --- | --- |
+| Trigger | DEV stopped before candidate fixation when cumulative forecast exceeded 1350. |
+| Independent Planner | Reproduced baseline broker 278 + sudo 47 and draft broker 282 + sudo 188 executable lines; net +145, cumulative 1398. Confirmed four paths, no compression, no removed control, and no authority/scope expansion. |
+| Independent QA plan review | Approved only `+145 / 1398` arithmetic and zero further production allowance. Existing TASK-first matrix and live E2E modes remain binding; missing negative test rows remain an execution gap, not a relaxed condition. |
+| Main approval | Continue only to finish tests/evidence with no further production change; stop on any production diff beyond the measured draft. Target 1400 and hard 1450 are unchanged. |

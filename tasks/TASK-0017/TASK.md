@@ -16,10 +16,10 @@ independent REVIEW and QA and merges.
   "executable": true,
   "depends_on": ["TASK-0008", "TASK-0015", "TASK-0016"],
   "baseline_production_sloc": 1253,
-  "expected_production_sloc": 55,
-  "expected_cumulative_production_sloc": 1308,
+  "expected_production_sloc": 145,
+  "expected_cumulative_production_sloc": 1398,
   "target_cumulative_cap": 1400,
-  "projected_cap_trigger_sloc": 1350,
+  "projected_cap_trigger_sloc": 1398,
   "hard_cumulative_guard": 1450,
   "production_paths": ["cmd/codex-authority-broker/main.go", "cmd/codex-authority-sudo/main.go"],
   "test_paths": ["cmd/codex-authority-broker/main_test.go", "cmd/codex-authority-sudo/main_test.go", "deploy/sudo/codex-authority_test.go"],
@@ -28,8 +28,8 @@ independent REVIEW and QA and merges.
   "lap_1": "With approved PLAN and TASK-first QA_PLAN, make the broker create the fixed socket for the configured dedicated nonzero equal UID/GID and make the PAM helper derive that identity only from the fixed root-directory socket metadata, permanently drop supplementary groups/GID/UID before its one authorize call, then run focused and isolated real TOTP/PAM/sudo tests.",
   "lap_2": "Exceptional only for one or two bounded findings requiring no redesign. Independent REVIEW and QA each verify socket ownership and replacement resistance, irreversible identity drop before transport, SO_PEERCRED denial, live/no-cache sudo, broker-stop/restart denial, redaction, rollback, full/race/vet/format/diff checks, and Main-only Git.",
   "exclusions": ["trusting PAM_RUSER, PAM_USER, environment, stdin, or caller-selected UID/GID", "allowing UID 0", "multiple authority sockets", "push or GitHub credentials", "installer or live-host PAM mutation", "audit", "attestation", "release", "canary"],
-  "split_stop_rule": "Stop before DEV if identity cannot be derived from a fixed-path socket beneath a non-writable root-owned directory, the dedicated identity cannot require equal nonzero UID/GID, groups/GID/UID cannot be irreversibly dropped before connect, broker and PAM peers need different authority rules, a second socket or seed disclosure is required, forecast exceeds 1350 cumulative, or the real isolated E2E/rollback fixture is unavailable; never bypass SO_PEERCRED or accept root as the authority client.",
-  "measurement_lineage": "The post-TASK-0009 real E2E accepted ready/OTP/authorize for UID 1000 only after a fixture chown; production broker omitted ipc.Config.Access. Real PAM then launched the helper as UID 0, which the single nonzero allowed_uid correctly rejected. A root-peer retry could not start because seed parsing correctly rejects UID 0. Forecast +55 covers broker Access wiring and bounded socket-metadata identity-drop logic, not test throughput.",
+  "split_stop_rule": "Stop before DEV if identity cannot be derived from a fixed-path socket beneath a non-writable root-owned directory, the dedicated identity cannot require equal nonzero UID/GID, groups/GID/UID cannot be irreversibly dropped before connect, broker and PAM peers need different authority rules, a second socket or seed disclosure is required, measured production exceeds +145 or cumulative 1398, any further production line/path is required, or the real isolated E2E/rollback fixture is unavailable; target 1400 is not extra allowance, never bypass SO_PEERCRED or accept root as the authority client, and 1450 remains an absolute guard.",
+  "measurement_lineage": "The post-TASK-0009 real E2E accepted ready/OTP/authorize for UID 1000 only after a fixture chown; production broker omitted ipc.Config.Access. Real PAM then launched the helper as UID 0, which the single nonzero allowed_uid correctly rejected. A root-peer retry could not start because seed parsing correctly rejects UID 0. The initial +55 forecast omitted the readable identity-hook, fixed-path metadata, and irreversible-drop boundary. Main stopped DEV at the 1350 trigger; independent remeasurement found a four-file net +145 draft and cumulative 1398, within target 1400 and hard 1450, with zero further production allowance.",
   "later_reserve_eligibility": "TASK-0012 and later audit/attestation/manual-canary work remain blocked until this Task passes, merges, and its actual SLOC/E2E evidence is available.",
   "contract_path": "tasks/TASK-0017/TASK.md"
 }
@@ -79,3 +79,18 @@ GitHub push is not part of this Task or v1. TASK-0010 and TASK-0011 remain
 `deferred-v2`, `executable:false`, and contribute zero v1 production SLOC.
 The remaining v1 sequence is TASK-0017 followed by the zero-SLOC TASK-0012
 measurement gate; later milestones remain blocked.
+
+## Approved remeasurement amendment
+
+The original `+55 / 1308 / trigger 1350` forecast was invalidated before a
+candidate was fixed. Main stopped DEV, and an independent Planner measured
+the same four owned paths at production net `+145`, cumulative `1398`. An
+independent TASK-first QA recheck approved only the numeric amendment: the
+acceptance conditions, authority and threat boundaries, four owned paths,
+test modes, and real TOTP/PAM/sudo E2E remain unchanged.
+
+This amendment closes the fired 1350 trigger. The measured draft has zero
+additional production allowance: any production line beyond net `+145`, any
+cumulative value above `1398`, use of the nominal two-line space below target
+1400, code compression, or an unowned production path stops for split/replan.
+The absolute guard remains 1450 and provides no implementation allowance.
