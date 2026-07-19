@@ -1,6 +1,6 @@
 {
   "schema_version": 10,
-  "generated_for": "TASK-0012",
+  "generated_for": "TASK-0018",
   "planning_basis": {
     "observed_pr": "Completed TASK-0001, TASK-0003, TASK-0004, and TASK-0005 cycles measured from the canonical 72-event snapshot.",
     "baseline_production_sloc": 751,
@@ -23,11 +23,11 @@
   },
   "wave": {
     "baseline_production_sloc": 1407,
-    "expected_added_production_sloc": 0,
-    "expected_cumulative_production_sloc": 1407,
+    "expected_added_production_sloc": 90,
+    "expected_cumulative_production_sloc": 1497,
     "target_cumulative_sloc": 1500,
     "hard_cumulative_sloc": 1800,
-    "target_reserve_sloc": 93,
+    "target_reserve_sloc": 3,
     "hard_reserve_sloc": 393,
     "measurement_source": "/tmp/task0012-events-frozen.jsonl; sha256 00482bd0db254b700848999d79e1cd67fe5dd3a0e5064b0847d92bbe7f932e05; 404 lines; no synthetic TASK-0017 terminal",
     "push_to_v2_decision": "selected (user-confirmed v1 scope): GitHub push capability is dropped from v1; former TASK-0010 (+130) and TASK-0011 (+153) remain deferred-v2, executable:false, and contribute zero v1 production SLOC while the dedicated socket/PAM identity handoff is the v1 blocker",
@@ -36,10 +36,10 @@
       "TASK-0009 measurement PASS+merge and user-confirmed v1 push drop",
       "TASK-0017 completed via PR #18: dedicated socket ownership and PAM peer identity handoff (actual Git delta +145; full-tree cumulative 1407)",
       "TASK-0012 completed zero-SLOC actual measurement gate (1407 actual; independent REVIEW/QA PASS; merge represented by this candidate)",
-      "MILESTONE-audit-attestation",
+      "TASK-0018 planned: minimal audit and source-free attested artifact (+90 maximum; cumulative 1497)",
       "MILESTONE-manual-canary-rollback"
     ],
-    "later_reserve_rule": "TASK-0017 passed independent REVIEW/QA and merged as PR #18. Until TASK-0012 independent REVIEW and QA both PASS and it merges, neither later milestone receives PLAN, branch, DEV, PR-ready detail, or production allocation. TASK-0010 and TASK-0011 remain user-confirmed deferred-v2, non-executable, and zero-v1-SLOC reserves."
+    "later_reserve_rule": "TASK-0012 passed independent REVIEW/QA and merged as PR #19, enabling TASK-0018 only. The manual canary/rollback milestone remains reserved until TASK-0018 passes, merges, and its live attestation verification succeeds. TASK-0010 and TASK-0011 remain user-confirmed deferred-v2, non-executable, and zero-v1-SLOC reserves."
   },
   "tasks": [
     {
@@ -364,34 +364,45 @@
       "later_reserve_eligibility": "Only after independent REVIEW PASS, independent QA PASS, and main merge may MILESTONE-audit-attestation then MILESTONE-manual-canary-rollback receive PLAN; both remain non-executable beforehand.",
       "replan_reason": "Post-merge full-tree measurement is 1407, nine above forecast because of a traced historical undercount. It remains below target 1500 and hard 1800; deferred-v2 push scope is unchanged.",
       "contract_path": "tasks/TASK-0012/TASK.md"
+    },
+    {
+      "id": "TASK-0018",
+      "title": "minimal audit and source-free attested artifact",
+      "status": "planned",
+      "executable": true,
+      "depends_on": ["TASK-0012"],
+      "baseline_production_sloc": 1407,
+      "expected_production_sloc": 90,
+      "expected_cumulative_production_sloc": 1497,
+      "target_cumulative_cap": 1500,
+      "projected_cap_trigger_sloc": 1497,
+      "hard_cumulative_guard": 1800,
+      "production_paths": ["cmd/codex-authority-broker/main.go", "internal/backend/runtime.go", "internal/ipc/server_linux.go", "internal/lease/lease.go"],
+      "test_paths": ["cmd/codex-authority-broker/main_test.go", "internal/backend/runtime_test.go", "internal/ipc/server_linux_test.go", "internal/lease/lease_test.go", ".github/workflows/release.yml", "deploy/pam/codex-authority", "deploy/systemd/codex-authority-broker.service"],
+      "entrypoint": "cmd/codex-authority-broker/main.go",
+      "fixture_elevation_needs": "Deterministic local audit and packaging tests require no elevation. Live postmerge GitHub Actions attestation and gh attestation verification require repository Actions access and network, but no secret material. The later private-namespace canary owns PAM/sudo elevation.",
+      "lap_1": "With approved PLAN and TASK-first QA_PLAN, add bounded fail-closed authority audit events, package only the three binaries plus declarative deployment files and checksums, attest the archive in GitHub Actions, and run focused/full local checks plus independent REVIEW and QA.",
+      "lap_2": "Exceptional only for one or two bounded findings requiring no redesign. Merge, run the workflow on main, download the artifact, verify its GitHub provenance and source-free manifest, and record postmerge evidence before enabling the manual canary/rollback Task.",
+      "exclusions": ["GitHub push capability or token custody", "generic logging framework", "remote log transport or retention service", "installer", "automatic deployment", "live-host PAM or sudo mutation", "manual canary execution", "release publishing beyond the attested workflow artifact"],
+      "split_stop_rule": "Stop if readable production exceeds +90 or cumulative 1497, mandatory audit fields/fail-closed behavior would weaken, sensitive material could enter audit, the archive cannot be proven source-free, or live attestation cannot be independently verified. The 1800 hard limit is not allowance and code must not be compressed.",
+      "measurement_lineage": "TASK-0012 measured 1407 production SLOC. TASK-0018 may add at most 90 readable production lines for cumulative 1497; workflows, docs, tests, and declarative PAM/systemd/sudoers files are excluded by the canonical definition.",
+      "later_reserve_eligibility": "Only independent REVIEW/QA PASS, main merge, successful live workflow, source-free manifest check, and gh attestation verification enable the manual canary/rollback milestone.",
+      "contract_path": "tasks/TASK-0018/TASK.md"
     }
   ],
   "future_milestones": [
-    {
-      "id": "MILESTONE-audit-attestation",
-      "title": "minimal audit and source-free attestation reserve",
-      "status": "reserved",
-      "executable": false,
-      "depends_on": ["TASK-0012"],
-      "production_paths": [],
-      "test_paths": [],
-      "expected_production_sloc": null,
-      "cumulative_production_sloc_reserve": 1500,
-      "description": "Non-executable later reserve for minimal external-trace audit and source-free attested artifact.",
-      "eligible_for": "ineligible for PLAN/DEV/branch/PR-ready detail until TASK-0012 independent REVIEW and QA PASS and merge."
-    },
     {
       "id": "MILESTONE-manual-canary-rollback",
       "title": "manual canary and rollback evidence reserve",
       "status": "reserved",
       "executable": false,
-      "depends_on": ["MILESTONE-audit-attestation"],
+      "depends_on": ["TASK-0018"],
       "production_paths": [],
       "test_paths": [],
       "expected_production_sloc": null,
       "cumulative_production_sloc_reserve": 1500,
       "description": "Non-executable later reserve retaining a manual verified canary/rollback runbook and evidence.",
-      "eligible_for": "ineligible for PLAN/DEV/branch/PR-ready detail until TASK-0012 and the audit/attestation owner gate pass."
+      "eligible_for": "ineligible for PLAN/DEV/branch/PR-ready detail until TASK-0018 independent REVIEW/QA PASS, merge, and live attestation verification."
     }
   ],
   "measurement_contract": {
@@ -469,7 +480,7 @@
     "first_zero_sloc_measurement_gate": "TASK-0009",
     "v1_push_drop_deferred_v2_reserve": "TASK-0010/TASK-0011",
     "final_measurement_and_later_reserve_gate": "TASK-0012",
-    "minimal_audit_and_source_free_attestation": "MILESTONE-audit-attestation",
+    "minimal_audit_and_source_free_attestation": "TASK-0018",
     "manual_canary_and_rollback_evidence": "MILESTONE-manual-canary-rollback"
   }
 }
