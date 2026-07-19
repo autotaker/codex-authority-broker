@@ -14,19 +14,20 @@
   "executable": true,
   "depends_on": ["TASK-0008"],
   "expected_production_sloc": 0,
-  "expected_cumulative_production_sloc": 1270,
+  "expected_cumulative_production_sloc": 1253,
   "target_cumulative_cap": 1350,
   "projected_cap_trigger_sloc": 1325,
   "hard_cumulative_guard": 1450,
   "production_paths": [],
   "test_paths": ["tasks/TASK-0009/MEASUREMENT.md"],
+  "process_evidence_paths": ["backlog.json", "tasks/TASK-0009/TASK.md", "tasks/TASK-0009/PLAN.md", "tasks/TASK-0009/QA_PLAN.md", "tasks/TASK-0009/MEASUREMENT.md", "tasks/TASK-0009/REVIEW_RESULT.md", "tasks/TASK-0009/QA_RESULT.md", "tasks/TASK-0010/TASK.md", "tasks/TASK-0011/TASK.md", "tasks/TASK-0012/TASK.md"],
   "entrypoint": null,
   "fixture_elevation_needs": "Read-only frozen canonical JSONL snapshot; no elevation, network, product fixture, or operational-log write.",
-  "lap_1": "After TASK-0013, TASK-0015, TASK-0016, and TASK-0008 merge, freeze the completed-event snapshot and regenerate provenance-complete historical plus new-wave SLOC/test/stage/active/wait/retry/raw/effective classification evidence, applying ceil(observed non-preflight time * 1.20) only to observable time.",
+  "lap_1": "After TASK-0013, TASK-0015, TASK-0016, and TASK-0008 merge, freeze the canonical snapshot; keep the four-task historical performance cohort separate from governance/partial events, measure TASK-0015/TASK-0016/TASK-0008 product terminals, preserve TASK-0013 completion timing as null because no canonical TASK-0013 terminal exists, and regenerate provenance-complete SLOC/test/stage/active/wait/retry/raw/effective classification evidence. Apply ceil(observed non-preflight time * 1.20) only to observable time.",
   "lap_2": "Independent REVIEW and QA each run canonical parse/unique-ID/correction-edge checks, independently regenerate measurement and cap arithmetic, and run the repository-native full Go/format/diff checks; main owns Git. TASK-0010 through TASK-0012 speculative arithmetic is invalidated and must be explicitly replanned from this evidence; push-to-v2 remains a TASK-0009 decision, never a silent selection.",
   "exclusions": ["all product/test implementation", "audit", "attestation", "release", "installer", "canary", "editing canonical log"],
   "split_stop_rule": "Stop on missing or contradictory canonical evidence, non-reproducible arithmetic, actual cumulative above target 1350, or inability to independently regenerate in Lap 2; classify before retry and do not bypass explicit replanning. Target 1500 may be exceeded only after an explicit later replan; push-to-v2 remains a TASK-0009 decision, never a silent selection.",
-  "measurement_lineage": "Include terminated TASK-0007, unfinished TASK-0014, completed replacements TASK-0013/TASK-0015, and requirement-gap prerequisite TASK-0016 lineage, preserve null with reasons, validate every correction target earlier in file order and same task/lap with smaller sequence, retain raw source IDs and superseded_by, and derive effective values only after validation.",
+  "measurement_lineage": "Historical performance cohort is exactly TASK-0001/0003/0004/0005. Exclude annotations.counts_as_product_lap=false partials from product terminals; keep TASK-0006 governance cycles separate. Include terminated TASK-0007, unfinished TASK-0014, completed TASK-0015/TASK-0016/TASK-0008, and TASK-0013 merged SLOC lineage with null completion timing because no canonical TASK-0013 terminal exists. Preserve null with reasons, validate every correction target earlier in file order and same task/lap with smaller sequence, retain raw source IDs and superseded_by, and derive effective values only after validation.",
   "later_reserve_eligibility": "Audit/attestation/manual-canary reserve remains non-executable until TASK-0012 PASS+merge; no converted milestone remains simultaneously reserved and executable.",
   "contract_path": "tasks/TASK-0009/TASK.md"
 }
@@ -34,8 +35,9 @@
 
 ## Purpose and evidence boundary
 
-This is a zero-production-SLOC measurement and replanning gate after exactly
-the replacement production Tasks TASK-0013/TASK-0015 and TASK-0008. It also
+This is a zero-production-SLOC measurement and replanning gate after the
+replacement production Tasks TASK-0013/TASK-0015, prerequisite TASK-0016,
+and TASK-0008. It also
 preserves unfinished TASK-0014 evidence and measures the immutable
 historical baseline and the new completed records, then requires explicit
 replanning before any speculative TASK-0010--TASK-0012 work may proceed after
@@ -43,15 +45,21 @@ independent REVIEW and QA. It does not implement product behavior and does not
 edit the canonical log.
 
 The canonical source is the read-only
-`/home/ubuntu/git/agent-harness-work/lap30/events.jsonl`. A completed task is
-only `event == "lap_completed" && status == "completed"`; the completed set
-for this gate remains exactly TASK-0001, TASK-0003, TASK-0004, and TASK-0005.
+`/home/ubuntu/git/agent-harness-work/lap30/events.jsonl`. The historical
+performance cohort remains exactly TASK-0001, TASK-0003, TASK-0004, and
+TASK-0005; it is not the product-terminal set. Product-terminal selection
+also excludes records whose annotations explicitly mark
+`counts_as_product_lap == "false"`; governance-only TASK-0006 cycles remain
+separate. The frozen log has no TASK-0013 terminal event, so its completion
+timing is null with that reason rather than imputed; merged SLOC lineage is
+preserved from later baseline-bearing events and the product tree.
 Corrections are not additional tasks.
 
 ## Preflight and two-Lap delivery
 
-Preflight verifies merged TASK-0013/TASK-0015/TASK-0008, freezes the completed-event
-snapshot, and confirms that the source and worktree are readable. A preflight
+Preflight verifies merged TASK-0013/TASK-0015/TASK-0016/TASK-0008, freezes
+the completed-event snapshot, and confirms that the source and worktree are
+readable. A preflight
 failure is `not_started`, excluded from cycle/stage timing, and never replaced
 with a synthetic zero.
 
@@ -112,16 +120,19 @@ jq -e . backlog.json >/dev/null
 
 ## Acceptance and exclusions
 
-- Exactly one evidence row exists for each of the four completed canonical
-  task IDs, with no row created from a correction or incomplete task.
+- Exactly one historical evidence row exists for each member of the four-task
+  performance cohort, and separate product-terminal rows exist for TASK-0015,
+  TASK-0016, and TASK-0008. TASK-0013 timing remains null with the missing
+  canonical-terminal reason; no correction, partial, governance, or incomplete
+  task is misrepresented as a product terminal.
 - SLOC/test, timing/null, preflight, active/wait, retry, correction, source-ID,
   contingency, and cap arithmetic is independently reproducible.
 - Raw historical classifications and effective unsuperseded classifications
   are separate and correction-provenanced.
 - No fixed SLOC throughput, LOC velocity, average, or imputed timing sizes the
   next contract.
-- The gate adds exactly 0 production SLOC; revised forecast cumulative
-  production is 1270 before independent measurement reconciliation.
+- The gate adds exactly 0 production SLOC; measured cumulative production is
+  1253 before independent measurement reconciliation.
 
 This Task excludes all product/test implementation, audit, attestation,
 release, installer, canary, and detailed contracts beyond the next bounded
@@ -130,7 +141,7 @@ QA output and is not one of TASK-0006's seven DEV outputs.
 
 ## Measurement, caps, and stop rule
 
-The forecast is +0 production SLOC and cumulative 1270; post-reestimate trigger
+The forecast is +0 production SLOC and cumulative 1253; post-reestimate trigger
 1325, target cap 1350, hard guard 1450. Stop on missing or contradictory canonical
 evidence, non-reproducible arithmetic, actual cumulative above 1350, or
 inability to independently regenerate in Lap 2. Classify before retry and do
