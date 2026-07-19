@@ -12,8 +12,8 @@ import (
 const (
 	ProtocolVersion = uint16(1)
 	MaxFrameBytes   = 4096
-	// OperationRequest is the protocol's transport-only dispatch operation.
-	OperationRequest = "request"
+	OperationReady  = "ready"
+	OperationOTP    = "otp"
 )
 
 var (
@@ -42,10 +42,29 @@ func readRequest(reader io.Reader) (Request, error) {
 	if err := decodeStrict(body, &request); err != nil {
 		return Request{}, ErrProtocol
 	}
-	if request.Version != ProtocolVersion || request.Operation != OperationRequest {
+	if request.Version != ProtocolVersion || !validOperation(request.Operation) {
 		return Request{}, ErrProtocol
 	}
 	return request, nil
+}
+
+func readResponse(reader io.Reader) (Response, error) {
+	body, err := readFrame(reader)
+	if err != nil {
+		return Response{}, err
+	}
+	var response Response
+	if err := decodeStrict(body, &response); err != nil || response.Version != ProtocolVersion {
+		return Response{}, ErrProtocol
+	}
+	return response, nil
+}
+
+func writeRequest(writer io.Writer, request Request) error {
+	if request.Version != ProtocolVersion || !validOperation(request.Operation) {
+		return ErrProtocol
+	}
+	return writeJSONFrame(writer, request)
 }
 
 func writeResponse(writer io.Writer, response Response) error {
@@ -106,4 +125,8 @@ func decodeStrict(body []byte, value any) error {
 		return ErrProtocol
 	}
 	return nil
+}
+
+func validOperation(operation string) bool {
+	return operation == OperationReady || operation == OperationOTP
 }

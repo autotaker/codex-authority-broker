@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
+	"syscall"
 	"testing"
 	"time"
 )
@@ -37,7 +38,7 @@ func (b *recordingBackend) callCount() int {
 func TestServerUsesRealPeerCredentials(t *testing.T) {
 	backend := &recordingBackend{response: Response{OK: true, Payload: []byte(`{"accepted":true}`)}}
 	server, path, cancel := startTestServer(t, uint32(os.Geteuid()), backend, nil)
-	response, err := exchange(path, Request{Version: ProtocolVersion, Operation: OperationRequest})
+	response, err := exchange(path, Request{Version: ProtocolVersion, Operation: OperationReady})
 	if err != nil || !response.OK || backend.callCount() != 1 {
 		t.Fatalf("authorized exchange response=%+v err=%v calls=%d", response, err, backend.callCount())
 	}
@@ -64,7 +65,7 @@ func TestServerRejectsRealMismatchedUID(t *testing.T) {
 		allowed--
 	}
 	server, path, cancel := startTestServer(t, allowed, backend, nil)
-	_, err := exchange(path, Request{Version: ProtocolVersion, Operation: OperationRequest})
+	_, err := exchange(path, Request{Version: ProtocolVersion, Operation: OperationReady})
 	if err == nil || backend.callCount() != 0 {
 		t.Fatalf("unauthorized exchange err=%v calls=%d", err, backend.callCount())
 	}
@@ -76,7 +77,7 @@ func TestServerRejectsCredentialFailureAndBackendError(t *testing.T) {
 	credentialFailure := func(*net.UnixConn) (uint32, error) { return 0, ErrServer }
 	backend := &recordingBackend{}
 	server, path, cancel := startTestServer(t, uint32(os.Geteuid()), backend, credentialFailure)
-	if _, err := exchange(path, Request{Version: ProtocolVersion, Operation: OperationRequest}); err == nil {
+	if _, err := exchange(path, Request{Version: ProtocolVersion, Operation: OperationReady}); err == nil {
 		t.Fatal("credential failure returned a response")
 	}
 	if backend.callCount() != 0 {
@@ -87,7 +88,7 @@ func TestServerRejectsCredentialFailureAndBackendError(t *testing.T) {
 
 	backend = &recordingBackend{err: errors.New("private backend detail")}
 	server, path, cancel = startTestServer(t, uint32(os.Geteuid()), backend, nil)
-	response, err := exchange(path, Request{Version: ProtocolVersion, Operation: OperationRequest})
+	response, err := exchange(path, Request{Version: ProtocolVersion, Operation: OperationReady})
 	if err != nil || response.OK || backend.callCount() != 1 {
 		t.Fatalf("backend failure response=%+v err=%v calls=%d", response, err, backend.callCount())
 	}
@@ -152,6 +153,72 @@ func TestListenRejectsUnsafeAndExistingPaths(t *testing.T) {
 	}
 }
 
+func TestProvisionedSocketUsesNumericOwnershipAndMode(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "provisioned.sock")
+	access := &SocketAccess{OwnerUID: uint32(os.Geteuid()), GroupGID: uint32(os.Getegid())}
+	backend := &recordingBackend{response: Response{OK: true}}
+	server, err := Listen(Config{Path: path, AllowedUID: uint32(os.Geteuid()), Access: access}, backend)
+	if err != nil {
+		t.Fatal(err)
+	}
+	info, err := os.Lstat(path)
+	if err != nil || info.Mode().Perm() != 0o660 {
+		t.Fatal("provisioned socket mode mismatch")
+	}
+	stat, ok := info.Sys().(*syscall.Stat_t)
+	if !ok || stat.Uid != access.OwnerUID || stat.Gid != access.GroupGID {
+		t.Fatal("provisioned numeric ownership mismatch")
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	go func() { _ = server.Serve(ctx) }()
+	response, err := exchange(path, Request{Version: ProtocolVersion, Operation: OperationReady})
+	if err != nil || !response.OK || backend.callCount() != 1 {
+		t.Fatal("provisioned authorized peer failed")
+	}
+	cancel()
+	if err := server.Close(); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestProvisionedSocketStillRejectsMismatchedUID(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "provisioned-denial.sock")
+	access := &SocketAccess{OwnerUID: uint32(os.Geteuid()), GroupGID: uint32(os.Getegid())}
+	backend := &recordingBackend{}
+	allowedUID := uint32(os.Geteuid()) + 1
+	if allowedUID == uint32(os.Geteuid()) {
+		allowedUID--
+	}
+	server, err := Listen(Config{Path: path, AllowedUID: allowedUID, Access: access}, backend)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	go func() { _ = server.Serve(ctx) }()
+	if _, err := exchange(path, Request{Version: ProtocolVersion, Operation: OperationReady}); err == nil {
+		t.Fatal("mismatched UID received a response")
+	}
+	if backend.callCount() != 0 {
+		t.Fatal("mismatched UID dispatched backend")
+	}
+	cancel()
+	_ = server.Close()
+}
+
+func TestProvisioningFailureCleansOwnedSocket(t *testing.T) {
+	if os.Geteuid() == 0 {
+		t.Skip("root can provision arbitrary numeric ownership")
+	}
+	path := filepath.Join(t.TempDir(), "denied.sock")
+	access := &SocketAccess{OwnerUID: uint32(os.Geteuid()) + 1, GroupGID: uint32(os.Getegid())}
+	if _, err := Listen(Config{Path: path, AllowedUID: uint32(os.Geteuid()), Access: access}, &recordingBackend{}); !errors.Is(err, ErrLifecycle) {
+		t.Fatalf("provisioning failure error = %v", err)
+	}
+	if _, err := os.Lstat(path); !os.IsNotExist(err) {
+		t.Fatal("failed provisioning left socket path")
+	}
+}
+
 type blockingBackend struct {
 	mu      sync.Mutex
 	calls   int
@@ -180,7 +247,7 @@ func TestCloseCancelsBlockingBackend(t *testing.T) {
 	server, path, _ := startTestServer(t, uint32(os.Geteuid()), backend, nil)
 	clientDone := make(chan struct{})
 	go func() {
-		_, _ = exchange(path, Request{Version: ProtocolVersion, Operation: OperationRequest})
+		_, _ = exchange(path, Request{Version: ProtocolVersion, Operation: OperationReady})
 		close(clientDone)
 	}()
 	select {
@@ -202,7 +269,7 @@ func TestCloseCancelsBlockingBackend(t *testing.T) {
 	if backend.callCount() != 1 {
 		t.Fatalf("backend calls = %d", backend.callCount())
 	}
-	_, _ = exchange(path, Request{Version: ProtocolVersion, Operation: OperationRequest})
+	_, _ = exchange(path, Request{Version: ProtocolVersion, Operation: OperationReady})
 	if backend.callCount() != 1 {
 		t.Fatal("request dispatched after shutdown")
 	}
@@ -345,7 +412,7 @@ func TestHandlerLimitRejectsSeventeenthClient(t *testing.T) {
 		t.Fatal(err)
 	}
 	_ = excess.SetDeadline(time.Now().Add(time.Second))
-	_ = writeRequest(excess, Request{Version: ProtocolVersion, Operation: OperationRequest})
+	_ = writeRequest(excess, Request{Version: ProtocolVersion, Operation: OperationReady})
 	if _, err := readResponse(excess); err == nil {
 		t.Fatal("seventeenth client received a response")
 	}
