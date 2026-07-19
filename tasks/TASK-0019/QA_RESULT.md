@@ -44,3 +44,21 @@ substituted locally.
 
 No product, test, workflow, deployment, Git, GitHub, or live-host state was
 changed by QA. Only this QA result was written.
+
+## Re-QA — final evidence candidate
+
+- Final evidence candidate: `dde3501ecebad314a47a0e6cc692bcfd9bc00b12`
+  (`fc2f22bb86f687d2393d5d01ef3f47a4e81319ec`).
+- `git diff --check
+  0dbeec721ffffbb757265efc69d1e791b33f7611..dde3501`: **PASS**, exit 0.
+- Product, workflow, deployment, and test paths are byte-identical to the
+  already-tested `ef8b346bded352ee0e4714cb72563544b9c392e9`; only
+  `QA_RESULT.md` was added and `REVIEW_RESULT.md` evidence was appended.
+- Canonical production remains **1478**: baseline 1407 + runtime 57 + IPC 8 +
+  lease 6 = +71. No security suite was rerun because the product tree did not
+  change and the affected QA case set was only Q19-05 diff hygiene.
+
+**Re-QA verdict: PASS for the premerge evidence candidate.** The prior FAIL is
+preserved above as history of the intermediate candidate. Q19-06 remains
+**PENDING POSTMERGE** and cannot be carried forward or replaced by this
+evidence-only re-QA.
