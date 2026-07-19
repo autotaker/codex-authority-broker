@@ -14,7 +14,7 @@
   "executable": true,
   "depends_on": ["TASK-0008"],
   "expected_production_sloc": 0,
-  "expected_cumulative_production_sloc": 1274,
+  "expected_cumulative_production_sloc": 1322,
   "target_cumulative_cap": 1350,
   "projected_cap_trigger_sloc": 1325,
   "hard_cumulative_guard": 1450,
@@ -120,7 +120,7 @@ jq -e . backlog.json >/dev/null
 - No fixed SLOC throughput, LOC velocity, average, or imputed timing sizes the
   next contract.
 - The gate adds exactly 0 production SLOC; forecast cumulative production is
-  1274 before independent measurement reconciliation.
+  1322 before independent measurement reconciliation.
 
 This Task excludes all product/test implementation, audit, attestation,
 release, installer, canary, and detailed contracts beyond the next bounded
@@ -129,7 +129,7 @@ QA output and is not one of TASK-0006's seven DEV outputs.
 
 ## Measurement, caps, and stop rule
 
-The forecast is +0 production SLOC and cumulative 1274; post-reestimate trigger
+The forecast is +0 production SLOC and cumulative 1322; post-reestimate trigger
 1325, target cap 1350, hard guard 1450. Stop on missing or contradictory canonical
 evidence, non-reproducible arithmetic, actual cumulative above 1350, or
 inability to independently regenerate in Lap 2. Classify before retry and do

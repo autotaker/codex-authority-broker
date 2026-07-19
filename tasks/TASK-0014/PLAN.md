@@ -200,3 +200,230 @@ planner attempt began before the available terminal timestamp and completed at
 `planning_defect`, null reason `planner runtime did not expose the turn start`.
 The stated deadline is `2026-07-19T08:39:41Z`; the observed completion evidence
 is before it.  Main owns any operational-log entry and all Git work.
+
+---
+
+# PLAN — TASK-0014 Revision 2: merged-gate execution decision
+
+## Decision — PASS: DEV may open under the reconciled gate
+
+**PASS (`none`, retries 0) against merge
+`d0736bbc6838e78ff5acc3f397f2b338a009b035`.**  Revision 1 remains intact as
+historical **FAIL (`planning_defect`)** evidence: its then-effective 1125 stop
+could not admit the ordinary readable estimate.  The merged contract, independent
+REVIEW attempt 2, and independent QA result now reconcile the operative local
+ledger without changing product scope: baseline **922**, forecast **+232**
+(readable **+225..240**), cumulative **1154** (range **1147..1162**), trigger
+**1200**, target **1250**, absolute **1350**, and global **1500/1800**.  Thus
+`1154 < 1200 < 1250 < 1350 < 1500 < 1800`; the global limits supply no local
+headroom.
+
+`git diff --check` passed, the canonical non-test production counter is 922,
+and no broker candidate exists.  The merged APIs are sufficient without a
+runtime or IPC edit: `backend.New([]byte)` builds an isolated runtime and
+`Runtime.Close()` is idempotent/fail-closed; `ipc.Listen(Config, Backend)`
+accepts the admitted UID, while `Server.Serve(context)` and `Server.Close()`
+already provide cancellation, connection draining, and identity-checked unlink.
+`dev-luna` is therefore approved for **Lap 1 only**, provided it uses ordinary
+readable code within this forecast.  No compression, API change, or control
+shedding is approved.
+
+## Locked ownership, construction, and seams
+
+DEV may modify only `cmd/codex-authority-broker/main.go` and
+`cmd/codex-authority-broker/main_test.go`.  It must retain every Revision 1
+and TASK-first QA-plan control: fixed root-relative descriptor walk; an
+`openat`/`O_NOFOLLOW`/`O_CLOEXEC` open and `fstat` for root, every parent, and
+the final descriptor; directory parents; final regular UID-0 exact-0600 file;
+explicit name/depth/path/size bounds; and exact close ownership/order on every
+success and denial.  No pathname pre-check, symlink resolution, host mutation,
+sudo, or real privileged seed fixture is allowed.
+
+The seed remains one bounded read and one strict JSON object: exactly
+`totp_secret_b64` and `allowed_uid`, unique/no unknown or trailing values,
+positive uint32 UID, canonical standard base64, and bounded non-empty decoded
+secret.  All metadata/read/schema denials map to a private generic error;
+errors and diagnostics must reveal no path, descriptor, UID, seed, or secret.
+Only owned mutable buffers are wiped (with the QA-plan Go-memory limitation
+stated in tests); no broader erasure claim is permitted.
+
+Use private interfaces/adapters in `main.go` for descriptor operations,
+reader/file conversion, `backend.New`, and listen/serve/close so tests can
+record calls without changing the merged runtime/IPC surface.  Success order
+is mandatory: validate/read seed, construct runtime, zero owned seed material,
+then `ipc.Listen` with the admitted UID.  Every preconstruction denial makes
+zero listen calls; listen failure closes the newly built runtime and leaves no
+owned socket.  Signal-driven serve shutdown closes runtime and server exactly
+once, treats unexpected serve/close errors as failure, relies on server-owned
+identity cleanup, and creates fresh runtime/server/seed state on restart.
+
+## Lap-1 acceptance and stop rule
+
+The deterministic test seam must cover the full descriptor walk (root, each
+parent, final), each open/openat/fstat/file-wrapper/read/close terminal branch,
+parent and final symlinks, nonregular/wrong-owner/all wrong-mode finals, and
+path/name/depth bounds including boundary+1.  It must cover valid minimum and
+maximum schema plus duplicate/unknown/missing/wrong-type/trailing/malformed
+JSON, invalid UID forms, invalid/noncanonical/empty/oversized base64, and
+oversized/short/error reads.  Each denial asserts redaction, owned-descriptor
+closure, buffer handling where applicable, and no listen.
+
+Lifecycle/mutation acceptance remains: construction-before-listen; listen,
+serve, and close failure; SIGINT and SIGTERM; repeated/concurrent close with
+an active client; owned-unlink replacement race; valid fresh restart; denied
+restart-without-seed; and unchanged existing-client ready/OTP plus malformed
+and unknown-request denial.  Use channel/barrier ordering and bounded contexts,
+not sleep proofs.  A Unix-socket capability denial is `environment` with a
+null reason, never product PASS; fixture coverage remains mandatory and a
+socket-capable REVIEW/QA rerun is required.
+
+Required DEV evidence (record exit status, UTC start/end, active/wait, retry,
+classification, and redacted null reason) is:
+
+```sh
+go test ./cmd/codex-authority ./cmd/codex-authority-broker ./internal/backend ./internal/ipc ./internal/lease
+go test -race ./cmd/codex-authority-broker
+GOFLAGS=-buildvcs=false GOCACHE="$(mktemp -d)" go test ./...
+go vet ./...
+test -z "$(gofmt -l $(find cmd internal -type f -name '*.go' -print))"
+git diff --check
+```
+
+Recount ordinary non-test production SLOC before implementation and after every
+meaningful addition.  At **>1200**, stop for explicit replan; at **>1250**,
+stop and perform the exact merged ordered shedding audit; at/above **1350**,
+FAIL/stop absolutely.  Stop/split immediately if a runtime/IPC or other-path
+change, an unisolatable descriptor seam, or a non-gate-ready Lap-1 test is
+needed.  Never compress branches/names/errors, delete tests/comments/controls,
+disguise generated code, borrow global capacity, or use Lap 3.
+
+## Planner evidence
+
+| Item | Evidence |
+| --- | --- |
+| Changed path | `tasks/TASK-0014/PLAN.md` only |
+| Merge / precondition | `d0736bbc6838e78ff5acc3f397f2b338a009b035` is `HEAD`; merged REVIEW attempt 2 and QA contract gate are PASS |
+| Current candidate state | `TOTAL 922`; broker `main.go` and `main_test.go` absent; no product decision asserted |
+| Active / wait / retries | `active_ms=unavailable`; `wait_ms=0`; `retries=0` |
+| Classification / null reason | `none`; planner runtime did not expose a reliable turn-start timestamp, so active duration is not inferred |
+| Completion / next state | `2026-07-19T08:44:03Z`; **active: dev-luna Lap 1**, **wait: independent REVIEW then QA**, **retry: none** |
+
+Main alone records any external/Lap timing log and Git operation.  Planner,
+DEV, REVIEW, and QA remain separate roles.
+
+---
+
+# PLAN — TASK-0014 Revision 3: Revision 2 command-gate correction
+
+## Decision — PASS: DEV remains approved under the same reconciled gate
+
+**PASS (`none`, retries 0).** This corrects only Revision 2's two omitted
+cache-bypass flags, as identified by independent QA_PLAN Revision 3. Revision
+1 remains historical **FAIL (`planning_defect`)** evidence, and Revision 2
+remains otherwise unchanged. The reconciled ledger, gates, mandatory controls,
+no-compression rule, Lap-1-only authorization, and all descriptor, schema,
+redaction, lifecycle, mutation, fixture, and existing-client controls remain
+exactly as approved: `1154 < 1200 < 1250 < 1350 < 1500 < 1800`.
+
+`dev-luna` remains approved only for Lap 1 and only for the same two owned
+paths: `cmd/codex-authority-broker/main.go` and
+`cmd/codex-authority-broker/main_test.go`. No runtime/IPC edit, scope change,
+or other control change is authorized.
+
+The required command gate in Revision 2 is corrected to restore these exact
+commands:
+
+```sh
+go test -count=1 -race ./cmd/codex-authority-broker
+GOFLAGS=-buildvcs=false GOCACHE="$(mktemp -d)" go test -count=1 ./...
+```
+
+All other Revision 2 required commands and their timing, exit-status,
+active/wait/retry, classification, and redacted-null-reason recording remain
+required without restatement or weakening.
+
+## Planner correction evidence
+
+| Item | Evidence |
+| --- | --- |
+| Changed path | `tasks/TASK-0014/PLAN.md` only |
+| Timing | completed `2026-07-19T08:47:45Z`; `active_ms=unavailable`; `wait_ms=0` |
+| Retry / classification | `retries=0`; `none` |
+| Null reason / next state | planner runtime did not expose a reliable turn-start timestamp, so active duration is not inferred; **active: dev-luna Lap 1**, **wait: independent REVIEW then QA**, **retry: none** |
+
+---
+
+# PLAN — TASK-0014 Revision 4: explicit post-trigger replan
+
+## Decision — FAIL/SPLIT: no DEV retry under the 1200 trigger
+
+**FAIL/SPLIT (`planning_defect`, planner retries 0).** Revisions 1--3,
+including their historical failures and their prior Lap-1 authorization, remain
+unchanged evidence. This is a new, read-only assessment of the stopped,
+unformatted broker candidate; it does not reclassify a product or test result.
+The canonical counter is now **1205**: baseline **922** plus broker
+`main.go` **283**, with no broker test file. The approved trigger is **1200**,
+so it permits at most **+278**. The candidate is already **+5** over that
+trigger and is not gate-ready.
+
+This is not a five-line arithmetic replan. The candidate has controls that
+must be corrected or made explicit before it may be tested:
+
+1. The final-file predicate uses `mode&0777 == 0600`, which admits setuid,
+   setgid, and sticky bits. It must require exact permission plus special bits
+   with `mode&07777 == 0600`; this is an in-place replacement, not a line
+   saving.
+2. `makeRuntime` and `listen` are invoked without nil guards. Fold both guards
+   into the existing context admission condition so a fixture or dependency
+   failure returns status 1 rather than panicking; this is line-neutral.
+3. A listener factory can return both a server and an error. Its failure path
+   currently closes only the runtime, leaving the returned server/socket
+   ownership ambiguous. Close a non-nil returned server before returning
+   status 1, then close the runtime. This adds one ordinary readable line and
+   preserves server-owned identity-checked unlinking.
+4. A nil `Serve` result before cancellation is currently accepted as status 0.
+   Extend the existing deferred failure condition to require `ctx.Err() != nil`
+   for a clean zero-status result; an expected cancellation remains clean and
+   unexpected serve termination is status 1. This is line-neutral. The final
+   descriptor's `os.NewFile` wrapper owns that final fd after successful
+   conversion, so the retry's fixture must prove reader-close ownership and
+   must not add a second descriptor close on that path.
+
+The only verified non-compressive reductions are also insufficient: remove the
+three-line `openSeed` forwarding wrapper by retaining its named fixed-path
+implementation directly, and replace the duplicate identical root/parent
+directory-flag constants with one named `directoryFlags` constant (**-4**).
+Together with the required non-nil-server failure close (**+1**), the credible
+readable floor is **280** production SLOC (cumulative **1202**, net **+280**).
+The mode, nil-dependency, and cancellation repairs do not change that count.
+Further reduction to 278 would require removing useful named seams/bounds or
+combining control/error paths; neither is authorized. No schema, descriptor,
+redaction, construction-before-listen, wipe, cancellation, close/unlink,
+restart, API, scope, test, or gate control may be deleted or weakened to fit.
+
+Accordingly, do **not** authorize the requested DEV retry at the present
+trigger and do not treat this as a gate raise. The smallest split boundary for
+Main's contract/QA reconciliation is a TASK-0014-only local candidate limit
+of **1202 / +280**, solely to admit the named corrections and simplifications
+above; all later 1250/1350 and global gates remain unchanged. If that boundary
+is not independently approved, stop with this FAIL and leave the candidate
+untouched. If it is approved, authorize exactly **one** DEV retry, with a
+measured target of **280** (acceptable readable range **279--280**, never
+above 1202), followed by independent REVIEW and QA. DEV must add the required
+deterministic broker tests before any PASS claim; their absence is
+`not_started`, not an excuse to waive the gate.
+
+## Revision 4 evidence and handoff
+
+| Item | Evidence |
+| --- | --- |
+| Changed path | `tasks/TASK-0014/PLAN.md` only |
+| Candidate inspected read-only | `cmd/codex-authority-broker/main.go`, 283 counted production SLOC; no `main_test.go` exists |
+| Measured ledger / forecast | `922 + 283 = 1205` observed; corrected readable floor `922 + 280 = 1202` |
+| Timing | completed `2026-07-19T08:59:17Z`; `active_ms=unavailable`; `wait_ms=0` |
+| Retry / classification | planner `retries=0`, `planning_defect`; conditional DEV retry budget `1` only after independent 1202 split approval |
+| Null reason / next state | turn-start timestamp was unavailable; **active:** Main contract/QA split decision; **wait:** no DEV, then independent REVIEW and QA only if approved |
+
+Main alone owns the requested contract/QA reconciliation, timing/log entries,
+and Git work. Planner must not edit product, tests, QA plans/results, backlog,
+or Lap logs.

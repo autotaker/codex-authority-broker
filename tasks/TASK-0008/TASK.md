@@ -14,7 +14,7 @@
   "executable": true,
   "depends_on": ["TASK-0014"],
   "expected_production_sloc": 120,
-  "expected_cumulative_production_sloc": 1274,
+  "expected_cumulative_production_sloc": 1322,
   "target_cumulative_cap": 1350,
   "projected_cap_trigger_sloc": 1325,
   "hard_cumulative_guard": 1450,
@@ -86,7 +86,7 @@ audit, release, installer, packaging, and canary work.
 
 ## Measurement, caps, and split/stop rule
 
-The forecast is +120 production SLOC and cumulative 1274; post-reestimate trigger
+The forecast is +120 production SLOC and cumulative 1322; post-reestimate trigger
 1325, target cap 1350, hard guard 1450. Forecast above 1325 stops before DEV for
 split/re-estimation and approved PLAN/QA_PLAN revision. Record elevation and
 fixture waiting separately from active work; record paired stage timing,

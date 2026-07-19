@@ -87,3 +87,46 @@ Revision 1 remain historical `planning_defect` failures.
 
 Completed `2026-07-19T08:32:26Z`. No product tests were required or treated as
 candidate evidence because the effective diff contains zero product-code delta.
+
+---
+
+## Measured-boundary contract amendment QA — PASS
+
+**PASS (`none`, retries 0) for the zero-product contract amendment only.**
+This is an independent QA disposition after the independent measured-boundary
+REVIEW **PASS**. It preserves every earlier QA result and does not approve a
+broker implementation or reclassify historical planning defects.
+
+| Assertion | Result | Independent evidence |
+| --- | --- | --- |
+| Local boundary | PASS | Canonical executable production recount is **922** (`83 + 171 + 35 + 117 + 283 + 173 + 60`); `922 + 280 = 1202`. TASK-0014 metadata and the amended QA/PLAN contract agree on broker `<=280`, cumulative/trigger `<=1202`, target 1250, and hard guard 1350. |
+| Downstream wave and reserves | PASS | `922 + 280 + 120 + 0 = 1322`; TASK-0008 and TASK-0009 both carry cumulative 1322. Backlog reserves reproduce `1500 - 1322 = 178` and `1800 - 1322 = 478`. |
+| Metadata equality | PASS | `jq -e . backlog.json` passed. Sorted metadata objects for TASK-0014, TASK-0008, and TASK-0009 are byte-identical between `backlog.json` and their embedded TASK.md JSON blocks. |
+| Controls and downstream containment | PASS | The 10 mandatory-v1 controls and exact seven-item shedding order are structurally byte-identical to `HEAD`. TASK-0010--TASK-0012 have no diff; TASK-0009 still requires its own PASS+merge and explicit replan, with no silent `push-to-v2` or later-reserve use. |
+| Lap and repairs | PASS | Exactly one conditional Lap-2 DEV correction/test completion is authorized at the 1202 boundary, followed by independent REVIEW and QA; no Lap 3 is authorized. PLAN/QA_PLAN retain all four required repairs: exact `mode&07777 == 0600`; nil-safe `makeRuntime` and `listen`; close a non-nil server returned with listen error before runtime close; and accept nil `Serve` only after cancellation. The final `os.NewFile` reader-close ownership proof remains required without a second final-descriptor close. |
+| Amendment scope | PASS | `git diff --check` passed; tracked `git diff --name-only HEAD -- '*.go'` is empty. The tracked amendment changes only backlog/TASK-0008/TASK-0009/TASK-0014 contract evidence; its product delta is **0**. |
+
+### Candidate non-approval
+
+The current untracked `cmd/codex-authority-broker/main.go` is **rejected** as
+non-gate-ready: the canonical nonblank/non-comment executable recount is
+**283** SLOC, producing `922 + 283 = 1205`, above the conditional 1202
+boundary. `gofmt -l` reports the file and no `main_test.go` exists. It is
+measurement evidence only, not a product PASS or an authorized exception.
+
+### Checks and classification
+
+| Check | Result | Classification |
+| --- | --- | --- |
+| JSON, sorted metadata equality, arithmetic/SLOC recount, controls/shedding HEAD comparison, scope/diff checks | PASS | none |
+| `GOFLAGS=-buildvcs=false GOCACHE=$(mktemp -d) go test -count=1 ./...` | Not usable as candidate evidence | environment_issue: this sandbox denies Unix-socket creation; existing CLI/IPC socket tests fail with `socket: operation not permitted`. The untested broker package reports `[no test files]`; this is not substituted with PASS. |
+| `make check` | Not usable | environment_issue: supplied worktree has no `check` target. |
+
+| Stage | active_ms | wait_ms | retries | classification | null reason |
+| --- | ---: | ---: | --- | --- | --- |
+| Measured-boundary contract QA | unavailable | 0 | 0 | none | Runtime did not expose a reliable turn-start timestamp, so duration is not inferred. |
+| Full socket-dependent check | unavailable | 0 | 0 | environment_issue | Unix-socket creation is denied by this sandbox; no retry was appropriate. |
+
+Completed `2026-07-19T09:16:19Z`. QA changed only
+`tasks/TASK-0014/QA_RESULT.md`; no product, test, contract, log, Git, staging,
+commit, or merge operation was performed.
