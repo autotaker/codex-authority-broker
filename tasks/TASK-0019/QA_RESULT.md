@@ -62,3 +62,60 @@ changed by QA. Only this QA result was written.
 preserved above as history of the intermediate candidate. Q19-06 remains
 **PENDING POSTMERGE** and cannot be carried forward or replaced by this
 evidence-only re-QA.
+
+## Main postmerge Q19-06 — live-e2e PASS
+
+GitHub reported the Actions incident resolved before Main retried. Rerunning
+incident-created run `29711658566` did not create a job and was not used as
+evidence. Main dispatched unchanged `main` and verified successful run
+`29719477768`, attempt 1, against merge
+`6e46ea61eb01354a7e00bdf9cf11e0b18003d6a6`. The run used
+`.github/workflows/release.yml`; its one `build` job and the build/package,
+attest, and upload steps all passed on a GitHub-hosted runner.
+
+Main downloaded only artifact `codex-authority-linux-amd64` into a new empty
+directory. The outer artifact contained only the archive and `SHA256SUMS`.
+The archive contained exactly seven regular-file members: `SHA256SUMS`, the
+three specified binaries, and the PAM, sudoers, and systemd declarative files.
+The uploaded and archived checksum files matched, and all six payload
+checksums passed. The archive SHA-256 is
+`0668006c911add01bacde27f1ecff4c87f143520cb5e294ad62fcc46c5c80f60`.
+
+Strict `gh attestation verify` passed with repository
+`autotaker/codex-authority-broker`, signer workflow
+`.github/workflows/release.yml`, source ref `refs/heads/main`, and source
+digest `6e46ea61eb01354a7e00bdf9cf11e0b18003d6a6`. The verified SLSA provenance
+names only `codex-authority-linux-amd64.tar.gz` with the same SHA-256 and binds
+the workflow/source SHA, main ref, repository, and run
+`29719477768/attempts/1`; one transparency timestamp verified. Negative
+controls rejected a wrong repository/workflow, source ref, source digest, and
+run identity.
+
+**Q19-06 verdict: PASS. TASK-0019 is complete.** No local archive substituted
+for the live artifact, no empty commit or product change was made, and the
+manual canary/rollback milestone may now be detailed under its own classified
+route.
+
+## Main evidence-maintenance checklist
+
+- Purpose and sources: close the already-merged Q19-06 live gate using PR #20,
+  merge `6e46ea6`, run `29719477768`, the downloaded artifact, its checksums,
+  and verified attestation certificate.
+- Paths: only this result, `TASK.md`, and `backlog.json`; no product, test,
+  workflow, dependency, generated artifact, or host path changes.
+- Arithmetic: baseline 1407 plus measured deltas 57 + 8 + 6 = 1478; target
+  reserve 22 and hard reserve 322.
+- Exclusions: no acceptance, threat-model, feature-scope, cap, v2 deferral,
+  canary procedure, or safety-boundary change.
+- Affected checks: source/status correspondence, merge/head/product identity,
+  JSON parse, production recount, reserve arithmetic, diff scope/hygiene,
+  schema-independent secret-pattern scan, and independent evidence review.
+- Correction/rollback: revert only the evidence-maintenance commit if any
+  source or mapping is disproven; retain the immutable GitHub run and prior
+  incident/FAIL history.
+- Lap30 log: no new product Lap or Lap 3 was created and no existing JSONL row
+  was changed. The updated v1 Schema precheck rejects six inherited rows (five
+  use `measurement_defect`; one uses `lap_finished`), so an append could not
+  satisfy the required whole-file pre/post validation. This operational Schema
+  compatibility defect is separate from Q19-06 and is not hidden by an
+  unvalidated correction event.

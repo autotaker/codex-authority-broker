@@ -3,7 +3,7 @@
 **Depends on:** TASK-0012 merged/PASS and TASK-0018 superseded with no product
 candidate.
 
-**Status:** planned v1 blocker.
+**Status:** completed; manual canary/rollback is now eligible for detail.
 
 ## Contract metadata
 
@@ -11,12 +11,14 @@ candidate.
 {
   "id": "TASK-0019",
   "title": "minimal audit and source-free attested artifact, replanned",
-  "status": "planned",
+  "status": "completed",
   "executable": true,
   "depends_on": ["TASK-0012", "TASK-0018"],
   "baseline_production_sloc": 1407,
   "expected_production_sloc": 90,
   "expected_cumulative_production_sloc": 1497,
+  "production_sloc_added": 71,
+  "actual_cumulative_production_sloc": 1478,
   "target_cumulative_cap": 1500,
   "projected_cap_trigger_sloc": 1497,
   "hard_cumulative_guard": 1800,
@@ -29,7 +31,8 @@ candidate.
   "exclusions": ["random or globally unique correlation format", "GitHub push/token custody", "generic or remote logging", "installer or automatic deployment", "live-host mutation", "manual canary", "GitHub Release publication"],
   "split_stop_rule": "Stop if readable production exceeds +90/cumulative1497, any required field or fail-closed decision weakens, sensitive input can enter audit, archive allowlisting/attestation cannot be proven, or another production path is needed. Do not compress; 1800 is not implementation allowance.",
   "measurement_lineage": "TASK-0018 measured a +102 readable draft: backend62, IPC27, lease13. Ordered shedding item3 removes only the rich random fixed-width correlation format while retaining a fresh process-local correlation ID; permanent Runtime closure removes separate lease-internal invalidation. Forecast <=90/cumulative<=1497.",
-  "later_reserve_eligibility": "Independent REVIEW/QA PASS, merge, successful main-bound workflow, exact source-free/checksum verification, and gh provenance verification enable the manual canary/rollback milestone.",
+  "later_reserve_eligibility": "Satisfied: independent REVIEW/QA passed, PR #20 merged as 6e46ea6, and main-bound run 29719477768 passed exact artifact/checksum and GitHub provenance verification. The manual canary/rollback milestone is eligible for proportional detail but remains non-executable until converted.",
+  "completion_evidence": "PR #20 merge 6e46ea6; GitHub Actions run 29719477768 attempt 1; artifact SHA-256 0668006c911add01bacde27f1ecff4c87f143520cb5e294ad62fcc46c5c80f60; SLSA provenance bound to autotaker/codex-authority-broker, .github/workflows/release.yml, refs/heads/main, and source/workflow SHA 6e46ea6.",
   "contract_path": "tasks/TASK-0019/TASK.md"
 }
 ```

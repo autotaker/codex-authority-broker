@@ -5,8 +5,8 @@
     "observed_pr": "Completed TASK-0001, TASK-0003, TASK-0004, and TASK-0005 cycles measured from the canonical 72-event snapshot.",
     "baseline_production_sloc": 751,
     "baseline_formula": "98 + 135 + 367 + 151 = 751",
-    "current_merged_production_sloc": 1407,
-    "current_merged_formula": "Full merged-tree recount: prior actual tree 1262 + TASK-0017 delta 145 = 1407. This reconciles the earlier 1253 ledger's nine-line TASK-0008 sudo-helper undercount (47 canonical lines recorded as 38).",
+    "current_merged_production_sloc": 1478,
+    "current_merged_formula": "Full merged-tree recount: TASK-0012 baseline 1407 + TASK-0019 deltas runtime57 + IPC8 + lease6 = 1478. TASK-0019 adds 71 readable production lines, within its +90/1497 approved bounds.",
     "baseline_source": "/home/ubuntu/git/agent-harness-work/lap30/events.jsonl",
     "canonical_completed_tasks": ["TASK-0001", "TASK-0003", "TASK-0004", "TASK-0005"],
     "strategy": "Rolling-wave planning: only detailed tasks are executable; reserves are non-executable.",
@@ -27,20 +27,20 @@
     "expected_cumulative_production_sloc": 1497,
     "target_cumulative_sloc": 1500,
     "hard_cumulative_sloc": 1800,
-    "target_reserve_sloc": 3,
-    "hard_reserve_sloc": 393,
+    "target_reserve_sloc": 22,
+    "hard_reserve_sloc": 322,
     "measurement_source": "/tmp/task0012-events-frozen.jsonl; sha256 00482bd0db254b700848999d79e1cd67fe5dd3a0e5064b0847d92bbe7f932e05; 404 lines; no synthetic TASK-0017 terminal",
     "push_to_v2_decision": "selected (user-confirmed v1 scope): GitHub push capability is dropped from v1; former TASK-0010 (+130) and TASK-0011 (+153) remain deferred-v2, executable:false, and contribute zero v1 production SLOC while the dedicated socket/PAM identity handoff is the v1 blocker",
-    "formula": "TASK-0009's 1253 ledger undercounted the new TASK-0008 sudo helper by nine lines (47 canonical lines recorded as 38). The TASK-0017 parent full-tree count is 1262 and merged count is 1407, proving delta +145. TASK-0012 adds zero: 1407 + 0 = 1407; target reserve 93 and hard reserve 393. User-confirmed TASK-0010/TASK-0011 deferral remains zero v1 SLOC.",
+    "formula": "TASK-0012 froze the corrected merged baseline at 1407. TASK-0019 adds runtime57 + IPC8 + lease6 = 71, so the current merged total is 1478; target reserve is 22 and hard reserve is 322. User-confirmed TASK-0010/TASK-0011 deferral remains zero v1 SLOC.",
     "owner_lineage": [
       "TASK-0009 measurement PASS+merge and user-confirmed v1 push drop",
       "TASK-0017 completed via PR #18: dedicated socket ownership and PAM peer identity handoff (actual Git delta +145; full-tree cumulative 1407)",
       "TASK-0012 completed zero-SLOC actual measurement gate (1407 actual; independent REVIEW/QA PASS; merge represented by this candidate)",
       "TASK-0018 superseded before candidate after measured +102 draft exceeded its +90 boundary",
-      "TASK-0019 planned: shed only rich random correlation format; retain five audit fields, fail-closed Runtime and attested artifact (+90 maximum; cumulative 1497)",
-      "MILESTONE-manual-canary-rollback"
+      "TASK-0019 completed via PR #20 and main-bound Actions run 29719477768: actual +71/cumulative1478, exact source-free artifact/checksums and GitHub attestation PASS",
+      "MILESTONE-manual-canary-rollback eligible for proportional detail; still reserved and non-executable until converted"
     ],
-    "later_reserve_rule": "TASK-0018 stopped without a candidate after its readable draft measured +102. TASK-0019 is the sole executable replacement after ordered shedding item3; the manual canary/rollback milestone remains reserved until TASK-0019 passes, merges, and live attestation verification succeeds. TASK-0010/0011 remain deferred-v2."
+    "later_reserve_rule": "TASK-0018 stopped without a candidate after its readable draft measured +102. TASK-0019 completed after ordered shedding item3 at +71/cumulative1478, with main-bound artifact and provenance verification PASS. The manual canary/rollback milestone is eligible for proportional detail but remains reserved and non-executable until converted. TASK-0010/0011 remain deferred-v2."
   },
   "tasks": [
     {
@@ -394,12 +394,14 @@
     {
       "id": "TASK-0019",
       "title": "minimal audit and source-free attested artifact, replanned",
-      "status": "planned",
+      "status": "completed",
       "executable": true,
       "depends_on": ["TASK-0012", "TASK-0018"],
       "baseline_production_sloc": 1407,
       "expected_production_sloc": 90,
       "expected_cumulative_production_sloc": 1497,
+      "production_sloc_added": 71,
+      "actual_cumulative_production_sloc": 1478,
       "target_cumulative_cap": 1500,
       "projected_cap_trigger_sloc": 1497,
       "hard_cumulative_guard": 1800,
@@ -412,7 +414,8 @@
       "exclusions": ["random or globally unique correlation format", "GitHub push/token custody", "generic or remote logging", "installer or automatic deployment", "live-host mutation", "manual canary", "GitHub Release publication"],
       "split_stop_rule": "Stop if readable production exceeds +90/cumulative1497, any required field/fail-closed decision weakens, sensitive input can enter audit, archive allowlisting/attestation cannot be proven, or another production path is needed. Do not compress.",
       "measurement_lineage": "TASK-0018 measured +102 (backend62, IPC27, lease13). Ordered shedding item3 drops only random fixed-width ID richness while retaining a fresh process-local correlation ID; permanent Runtime closure removes separate lease-internal invalidation. Forecast <=90/cumulative<=1497.",
-      "later_reserve_eligibility": "Independent REVIEW/QA PASS, merge, successful main-bound workflow, exact source-free/checksum verification, and gh provenance verification enable the manual canary/rollback milestone.",
+      "later_reserve_eligibility": "Satisfied by PR #20 merge 6e46ea6 and main-bound run 29719477768: exact source-free/checksum verification and GitHub provenance verification passed. The manual canary/rollback milestone is eligible for proportional detail but remains non-executable until converted.",
+      "completion_evidence": "PR #20 merge 6e46ea6; run 29719477768 attempt 1; artifact SHA-256 0668006c911add01bacde27f1ecff4c87f143520cb5e294ad62fcc46c5c80f60; SLSA provenance bound to repository, release workflow, refs/heads/main, and source/workflow SHA 6e46ea6.",
       "contract_path": "tasks/TASK-0019/TASK.md"
     }
   ],
@@ -428,7 +431,7 @@
       "expected_production_sloc": null,
       "cumulative_production_sloc_reserve": 1500,
       "description": "Non-executable later reserve retaining a manual verified canary/rollback runbook and evidence.",
-      "eligible_for": "ineligible for PLAN/DEV/branch/PR-ready detail until TASK-0019 independent REVIEW/QA PASS, merge, and live attestation verification."
+      "eligible_for": "eligible for proportional classification and detail after TASK-0019 completion; remains reserved, executable:false, and cannot start host mutation until converted through the applicable approved route."
     }
   ],
   "measurement_contract": {
