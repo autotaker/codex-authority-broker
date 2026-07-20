@@ -2,8 +2,8 @@
 
 **Depends on:** TASK-0019 completed with live artifact and provenance PASS.
 
-**Status:** planned safety-contract and live operational-evidence Task; no
-product DEV is authorized.
+**Status:** completed safety-contract and live operational-evidence Task; no
+product DEV was performed.
 
 ## Contract metadata
 
@@ -11,24 +11,27 @@ product DEV is authorized.
 {
   "id": "TASK-0020",
   "title": "artifact-only manual canary and exact rollback evidence",
-  "status": "planned",
+  "status": "completed",
   "executable": true,
   "work_classification": "safety_contract_and_live_operational_evidence",
   "depends_on": ["TASK-0019"],
   "baseline_production_sloc": 1478,
   "expected_production_sloc": 0,
   "expected_cumulative_production_sloc": 1478,
+  "production_sloc_added": 0,
+  "actual_cumulative_production_sloc": 1478,
   "target_cumulative_cap": 1500,
   "hard_cumulative_guard": 1800,
   "production_paths": [],
   "test_paths": [],
-  "evidence_paths": ["tasks/TASK-0020/TASK.md", "tasks/TASK-0020/PLAN.md", "tasks/TASK-0020/QA_PLAN.md", "tasks/TASK-0020/PLAN_REVIEW.md", "tasks/TASK-0020/STAGE_RUNBOOK.sh", "tasks/TASK-0020/CANARY_RUNBOOK.sh", "tasks/TASK-0020/CANARY_RESULT.md", "tasks/TASK-0020/EVIDENCE_REVIEW.md", "backlog.json"],
+  "evidence_paths": ["tasks/TASK-0020/TASK.md", "tasks/TASK-0020/PLAN.md", "tasks/TASK-0020/QA_PLAN.md", "tasks/TASK-0020/PLAN_REVIEW.md", "tasks/TASK-0020/STAGE_RUNBOOK.sh", "tasks/TASK-0020/CANARY_RUNBOOK.sh", "tasks/TASK-0020/MANUAL_E2E_TEST.md", "tasks/TASK-0020/CANARY_RESULT.md", "tasks/TASK-0020/EVIDENCE_REVIEW.md", "backlog.json"],
   "artifact_run": 29720021660,
   "artifact_source_commit": "09487b104f32cad23a695ec3f1a0c7e7a68e6163",
   "artifact_sha256": "5ff05af201284c7581f1a4b9a2c3db5f5fd3102666644039cea56b8b8e4809dd",
   "fixture_elevation_needs": "Existing noninteractive administrator authority with no new privilege widening; execution is limited by Main approval to the independently reviewed, digest-pinned unshare launcher and fixed staging path. Fixture policy, identities, seed, socket, timestamps, logs and installation paths remain tmpfs-only; exact outer staging rollback is mandatory.",
   "exclusions": ["all product/test/workflow/dependency changes", "source or local-build substitution", "installer implementation", "persistent installation", "live workstation PAM/sudoers/identity mutation", "GitHub push capability", "secret-bearing evidence", "counted product Lap"],
   "split_stop_rule": "Do not start the live fixture unless artifact identity, noninteractive namespace elevation, exact host pre-state capture, cleanup commands, and rollback comparison are ready. Any product behavior defect stops this Task and requires a separately approved product Task; never patch the artifact or weaken a negative case in place.",
+  "completion_evidence": "CANARY_RESULT and independent EVIDENCE_REVIEW Q20-12 PASS; 2026-07-21 owner-run manual E2E functional cases Q20-01 through Q20-10 PASS; raw Q20-11 FAIL classified qa_plan_defect because the only host diff was unrelated /run root inode size 940 to 920 while fixture-owned paths were unchanged; outer setup/cleanup digest a8258a8c1b1d68fd299287288e2a3c047c32aaec39e3626b5d05bf58ebfa0bcd matched and post-cleanup probes passed; owner accepted overall PASS and waived a corrected-script rerun; independent final v1 requirement audit PASS with no unresolved implementation, requirement, or evidence gap; zero product SLOC, cumulative 1478.",
   "contract_path": "tasks/TASK-0020/TASK.md"
 }
 ```
@@ -120,3 +123,18 @@ Completion requires `CANARY_RESULT.md`, independent `EVIDENCE_REVIEW.md` PASS,
 clean host rollback, unchanged product SLOC 1478, Main-owned evidence Git, and
 a final v1 requirement-by-requirement audit. Secret values and full raw command
 output are never evidence.
+
+## Completion disposition — 2026-07-21
+
+The owner-run manual E2E passed Q20-01 through Q20-10. Raw Q20-11 failed only
+because unrelated activity changed the `/run` directory inode size from 940 to
+920 during the natural-expiry wait. The debug comparison showed no changed
+fixture-owned path. Exact outer cleanup reproduced setup digest
+`a8258a8c1b1d68fd299287288e2a3c047c32aaec39e3626b5d05bf58ebfa0bcd`,
+and every post-cleanup absence probe passed.
+
+The owner classified the raw Q20-11 result as `qa_plan_defect`, accepted the
+overall E2E as PASS, and waived a corrected-script rerun. The corrected oracle
+continues to compare `/run/codex-authority.sock` and `/run/sudo` explicitly but
+does not compare the volatile root directory inode size. This disposition does
+not erase or rewrite the raw FAIL record.

@@ -267,3 +267,20 @@ accepted Q20-02L with exact inner/outer rollback, and documentary Q20-02 PASS
 then gate a separately authorized canary.  Final
 Task PASS still requires every live/evidence case, a secret-free record, and
 exact rollback; there is no partial verdict.
+
+## Post-completion oracle correction
+
+All earlier "current" digest references in this QA history refer to the
+reviewed and executed STAGE
+`79acb81eb39209c966fd183d0925667bb589d208f8f89134bb433fcea7f9e3dd`
+and CANARY
+`4321084a31719ab582a66e0fc1712e3d20685768f8f359c7b20dee40bd9bd5c7`
+lineage. The repository now contains STAGE
+`5a0efd62c4f3393cd59b76930c2b76490fd61d81bfffea548eb9dd1c5d199b9b`
+and CANARY
+`b71ddfce0afaa8c373e0bcd67ddfd35027ab4010bd5a87a19611921c976a0629`.
+The only oracle change removes volatile `/run` root inode size while retaining
+the exact fixture-owned path checks. The owner accepted the raw Q20-11 FAIL as
+a `qa_plan_defect`, waived a corrected-script rerun, and did not represent the
+corrected script as executed. This note preserves that exception and does not
+retroactively change any raw case result or execution authorization.

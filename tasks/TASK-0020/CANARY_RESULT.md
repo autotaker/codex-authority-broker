@@ -172,3 +172,39 @@ events themselves. Their labels and order bind each digest to its corresponding
 call. The stopped-broker row intentionally has no Q20-09 event; the fresh
 broker denial intentionally has one. This complete record is submitted for a
 fresh independent Q20-12 review; the earlier FAIL remains part of history.
+
+## Owner-run manual E2E — 2026-07-21
+
+The repository owner subsequently executed the published manual procedure on
+Ubuntu. Preflight passed Q20-01, Q20-03, Q20-02, and Q20-11. The canary passed
+Q20-01 through Q20-10, including the functional, denial, natural-expiry,
+broker-lifecycle, audit, and protected-evidence checks. Its raw terminal record
+was:
+
+```text
+Q20-11 result=FAIL count=0 digest=e86746208b5a305f8809d498edc80ceefaf12540897beae62828ab09868489c5
+```
+
+A bounded diagnostic rerun reproduced the same classification with raw digest
+`095c29175d7a46e370f81f2d8343c399998641b6da3fd219c0b8b4140940385a`.
+The retained host diff contained exactly one difference:
+
+```diff
+-run-root\tdirectory\t/run\t755\t0\t0\t940
++run-root\tdirectory\t/run\t755\t0\t0\t920
+```
+
+No fixture-owned path changed. The `/run` root directory inode size is volatile
+because unrelated runtime services can add or remove entries during the
+canary's natural-expiry wait; it is not evidence of fixture residue. The outer
+cleanup passed with the same setup digest
+`a8258a8c1b1d68fd299287288e2a3c047c32aaec39e3626b5d05bf58ebfa0bcd`,
+and the staging path, socket, stage mounts, and fixture processes were all
+absent (`post_cleanup_rc=0`).
+
+The owner accepted the overall run as PASS with a `qa_plan_defect` exception,
+retained the raw Q20-11 FAIL, and waived a formal rerun. The oracle-only script
+correction removes the `/run` root inode-size comparison while retaining exact
+comparisons of `/run/codex-authority.sock`, `/run/sudo`, and every other
+declared host boundary. The corrected script was not represented as executed
+evidence.

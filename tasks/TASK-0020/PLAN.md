@@ -296,3 +296,21 @@ the earlier FAIL; the earlier review record is never rewritten or hidden.
 but only the bounded preflight may follow corrected plan approval. The canary
 remains unauthorized until Q20-01, preflight/evidence review, exact inner and
 outer rollback, and a fresh independent plan-review PASS.**
+
+## Post-completion oracle correction
+
+References above to the "current" runbook bindings describe the reviewed and
+executed authorization lineage at the time of the live attempts: STAGE
+`79acb81eb39209c966fd183d0925667bb589d208f8f89134bb433fcea7f9e3dd`
+and CANARY
+`4321084a31719ab582a66e0fc1712e3d20685768f8f359c7b20dee40bd9bd5c7`.
+After the owner-run manual E2E, the repository runbooks became STAGE
+`5a0efd62c4f3393cd59b76930c2b76490fd61d81bfffea548eb9dd1c5d199b9b`
+and CANARY
+`b71ddfce0afaa8c373e0bcd67ddfd35027ab4010bd5a87a19611921c976a0629`.
+That correction removes only the invalid `/run` root inode-size input from
+Q20-11; it retains explicit fixture-owned path comparison. The corrected
+script was not executed, and the owner waived a rerun while preserving the raw
+FAIL as an approved `qa_plan_defect` exception. The current manual pins the
+corrected hashes; the historical authorization above does not authorize a new
+run.

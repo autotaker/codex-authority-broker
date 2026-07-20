@@ -309,3 +309,50 @@ secret-free, internally consistent, and independently reviewable. Final
 Q20-12 is PASS for TASK-0020's evidence and exact rollback contract. This
 verdict does not erase the earlier FAIL or the safely rolled-back attempt
 history.
+
+## Owner disposition addendum — 2026-07-21
+
+The later owner-run manual E2E is additional operational evidence and does not
+replace the independently reviewed 24-row PASS above. Its functional cases
+Q20-01 through Q20-10 passed, but raw Q20-11 failed because the host comparator
+included the volatile `/run` root directory inode size. The retained diff was
+limited to size 940 changing to 920; no fixture-owned path changed. Exact outer
+rollback and all post-cleanup probes passed.
+
+The owner accepted the complete E2E outcome as PASS, classified the raw
+Q20-11 result as `qa_plan_defect`, and waived a corrected-script rerun. The raw
+FAIL remains recorded in `CANARY_RESULT.md`. The corrected runbook narrows only
+the invalid oracle input and retains explicit comparison of the fixture-owned
+`/run/codex-authority.sock` and `/run/sudo` paths. This addendum records the
+owner's approved disposition; it does not claim that the corrected script was
+executed.
+
+## Final v1 requirement audit — 2026-07-21
+
+### Decision: PASS
+
+Independent QA mapped the final candidate to the complete v1 boundary and
+found no unresolved implementation, requirement, or evidence gap:
+
+- TASK-0001 and TASK-0003 cover absolute lease expiry, restart fail-closed,
+  TOTP one-use, replay, rate, concurrency, and boot-floor behavior.
+- TASK-0004 and TASK-0005 cover bounded versioned SO_PEERCRED IPC, fixed CLI
+  actions, stdin-only OTP input, and secret redaction.
+- TASK-0013, TASK-0015, and TASK-0016 cover runtime readiness/activation,
+  bounded root-only seed and daemon lifecycle, payload-free authorization,
+  cancellation, closure, and race ordering.
+- TASK-0008 and TASK-0017 cover a fresh live check for every sudo invocation,
+  disabled timestamp caching, dedicated socket ownership, PAM peer identity,
+  and irreversible dedicated-identity privilege drop.
+- TASK-0019 covers bounded fail-closed audit and the exact source-free,
+  checksummed, main-bound attested artifact.
+- TASK-0020 covers the real manual canary and exact rollback under the recorded
+  owner-approved Q20-11 `qa_plan_defect` exception and rerun waiver.
+- TASK-0010 and TASK-0011 remain `deferred-v2`, non-executable, and outside the
+  v1 boundary.
+
+The independent checks reconfirmed production SLOC 1478, current source tests
+and focused race coverage, the prior socket-capable and live evidence, exact
+runbook/manual hashes, secret-free retained evidence, and clean host probes.
+This audit completes the final v1 gate without changing product behavior or
+retroactively changing any raw result.
