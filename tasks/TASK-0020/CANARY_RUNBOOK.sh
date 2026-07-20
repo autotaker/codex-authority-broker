@@ -49,7 +49,9 @@ capture_host() {
       sha256sum "$file" | awk '{print $1}'
     done < <(find -H "$path" -xdev -type f -print0 2>/dev/null | sort -z)
   done
-  stat -c 'run-root\t%F\t%n\t%a\t%u\t%g\t%s' /run
+  # Do not compare /run directory inode size: unrelated runtime services can
+  # add or remove entries during the natural-expiry wait. Fixture-owned
+  # /run/codex-authority.sock and /run/sudo are compared explicitly above.
 }
 
 HOST_BEFORE="$(capture_host)"

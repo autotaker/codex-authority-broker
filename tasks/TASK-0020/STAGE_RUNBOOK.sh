@@ -8,7 +8,7 @@ readonly STAGE=/var/tmp/codex-authority-task0020
 readonly INPUT=/tmp/task0020-artifact-29720021660.AwGYdh
 readonly SOURCE=/home/ubuntu/git/codex-authority-broker/tasks/TASK-0020/CANARY_RUNBOOK.sh
 readonly ARCHIVE_SHA=5ff05af201284c7581f1a4b9a2c3db5f5fd3102666644039cea56b8b8e4809dd
-readonly RUNBOOK_SHA=4321084a31719ab582a66e0fc1712e3d20685768f8f359c7b20dee40bd9bd5c7
+readonly RUNBOOK_SHA=b71ddfce0afaa8c373e0bcd67ddfd35027ab4010bd5a87a19611921c976a0629
 
 [[ $# -eq 1 && ( $1 == setup || $1 == cleanup ) && $EUID -eq 0 ]] || exit 2
 readonly MODE=$1
