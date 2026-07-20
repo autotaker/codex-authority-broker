@@ -1,6 +1,6 @@
 {
-  "schema_version": 10,
-  "generated_for": "TASK-0019",
+  "schema_version": 11,
+  "generated_for": "TASK-0020",
   "planning_basis": {
     "observed_pr": "Completed TASK-0001, TASK-0003, TASK-0004, and TASK-0005 cycles measured from the canonical 72-event snapshot.",
     "baseline_production_sloc": 751,
@@ -38,9 +38,9 @@
       "TASK-0012 completed zero-SLOC actual measurement gate (1407 actual; independent REVIEW/QA PASS; merge represented by this candidate)",
       "TASK-0018 superseded before candidate after measured +102 draft exceeded its +90 boundary",
       "TASK-0019 completed via PR #20 and main-bound Actions run 29719477768: actual +71/cumulative1478, exact source-free artifact/checksums and GitHub attestation PASS",
-      "MILESTONE-manual-canary-rollback eligible for proportional detail; still reserved and non-executable until converted"
+      "TASK-0020 planned artifact-only manual canary and rollback: zero product SLOC, private namespace, exact live evidence and rollback"
     ],
-    "later_reserve_rule": "TASK-0018 stopped without a candidate after its readable draft measured +102. TASK-0019 completed after ordered shedding item3 at +71/cumulative1478, with main-bound artifact and provenance verification PASS. The manual canary/rollback milestone is eligible for proportional detail but remains reserved and non-executable until converted. TASK-0010/0011 remain deferred-v2."
+    "later_reserve_rule": "TASK-0018 stopped without a candidate after its readable draft measured +102. TASK-0019 completed after ordered shedding item3 at +71/cumulative1478, with main-bound artifact and provenance verification PASS. The manual canary/rollback reserve is converted exclusively to TASK-0020 as a zero-product-SLOC safety-contract and live operational-evidence Task. TASK-0010/0011 remain deferred-v2."
   },
   "tasks": [
     {
@@ -417,23 +417,32 @@
       "later_reserve_eligibility": "Satisfied by PR #20 merge 6e46ea6 and main-bound run 29719477768: exact source-free/checksum verification and GitHub provenance verification passed. The manual canary/rollback milestone is eligible for proportional detail but remains non-executable until converted.",
       "completion_evidence": "PR #20 merge 6e46ea6; run 29719477768 attempt 1; artifact SHA-256 0668006c911add01bacde27f1ecff4c87f143520cb5e294ad62fcc46c5c80f60; SLSA provenance bound to repository, release workflow, refs/heads/main, and source/workflow SHA 6e46ea6.",
       "contract_path": "tasks/TASK-0019/TASK.md"
-    }
-  ],
-  "future_milestones": [
+    },
     {
-      "id": "MILESTONE-manual-canary-rollback",
-      "title": "manual canary and rollback evidence reserve",
-      "status": "reserved",
-      "executable": false,
+      "id": "TASK-0020",
+      "title": "artifact-only manual canary and exact rollback evidence",
+      "status": "planned",
+      "executable": true,
+      "work_classification": "safety_contract_and_live_operational_evidence",
       "depends_on": ["TASK-0019"],
+      "baseline_production_sloc": 1478,
+      "expected_production_sloc": 0,
+      "expected_cumulative_production_sloc": 1478,
+      "target_cumulative_cap": 1500,
+      "hard_cumulative_guard": 1800,
       "production_paths": [],
       "test_paths": [],
-      "expected_production_sloc": null,
-      "cumulative_production_sloc_reserve": 1500,
-      "description": "Non-executable later reserve retaining a manual verified canary/rollback runbook and evidence.",
-      "eligible_for": "eligible for proportional classification and detail after TASK-0019 completion; remains reserved, executable:false, and cannot start host mutation until converted through the applicable approved route."
+      "evidence_paths": ["tasks/TASK-0020/TASK.md", "tasks/TASK-0020/PLAN.md", "tasks/TASK-0020/QA_PLAN.md", "tasks/TASK-0020/PLAN_REVIEW.md", "tasks/TASK-0020/STAGE_RUNBOOK.sh", "tasks/TASK-0020/CANARY_RUNBOOK.sh", "tasks/TASK-0020/CANARY_RESULT.md", "tasks/TASK-0020/EVIDENCE_REVIEW.md", "backlog.json"],
+      "artifact_run": 29720021660,
+      "artifact_source_commit": "09487b104f32cad23a695ec3f1a0c7e7a68e6163",
+      "artifact_sha256": "5ff05af201284c7581f1a4b9a2c3db5f5fd3102666644039cea56b8b8e4809dd",
+      "fixture_elevation_needs": "Existing noninteractive administrator authority with no new privilege widening; execution is limited by Main approval to the independently reviewed, digest-pinned unshare launcher and fixed staging path. Fixture policy, identities, seed, socket, timestamps, logs and installation paths remain tmpfs-only; exact outer staging rollback is mandatory.",
+      "exclusions": ["all product/test/workflow/dependency changes", "source or local-build substitution", "installer implementation", "persistent installation", "live workstation PAM/sudoers/identity mutation", "GitHub push capability", "secret-bearing evidence", "counted product Lap"],
+      "split_stop_rule": "Do not start the live fixture unless artifact identity, noninteractive namespace elevation, exact host pre-state capture, cleanup commands, and rollback comparison are ready. Any product behavior defect stops this Task and requires a separately approved product Task; never patch the artifact or weaken a negative case in place.",
+      "contract_path": "tasks/TASK-0020/TASK.md"
     }
   ],
+  "future_milestones": [],
   "measurement_contract": {
     "required_fields": [
       "planned_production_sloc", "actual_production_sloc", "cumulative_production_sloc", "test_loc",
