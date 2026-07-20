@@ -2,4 +2,6 @@
 
 TOTP-backed, time-bounded authority leases for a dedicated Codex OS identity.
 
-Development status: initial task planning.
+Development status is tracked in [backlog.json](backlog.json).
+
+The canonical development process is in [docs/development/README.md](docs/development/README.md).
