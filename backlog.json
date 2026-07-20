@@ -1,6 +1,6 @@
 {
-  "schema_version": 11,
-  "generated_for": "TASK-0020",
+  "schema_version": 12,
+  "generated_for": "TASK-0021",
   "planning_basis": {
     "observed_pr": "Completed TASK-0001, TASK-0003, TASK-0004, and TASK-0005 cycles measured from the canonical 72-event snapshot.",
     "baseline_production_sloc": 751,
@@ -11,6 +11,7 @@
     "canonical_completed_tasks": ["TASK-0001", "TASK-0003", "TASK-0004", "TASK-0005"],
     "strategy": "Rolling-wave planning: only detailed tasks are executable; reserves are non-executable.",
     "production_loc_definition": "Count nonblank, non-comment executable-source lines in shipped, installed, or runtime/installation source: non-test .go and shipped .py, .sh, or .c. Excludes tests, planning/review documents, task/operator docs, workflows, declarative systemd/PAM/sudoers configuration, generated, and vendor.",
+    "production_sloc_budget_exceptions": {"TASK-0021": "By explicit owner decision, installer, verifier, rollback, recovery, enrollment, rotation, and uninstall implementation is measured for readability but excluded from the 1500/1800 production SLOC budget. Any change to existing broker, CLI, PAM helper, IPC, lease, or audit runtime remains inside the budget."},
     "measurement_rules": {
       "unmatched_timing": "null, not zero",
       "stage_pairing": "same task, lap, stage, and attempt start-terminal pairs only",
@@ -38,9 +39,10 @@
       "TASK-0012 completed zero-SLOC actual measurement gate (1407 actual; independent REVIEW/QA PASS; merge represented by this candidate)",
       "TASK-0018 superseded before candidate after measured +102 draft exceeded its +90 boundary",
       "TASK-0019 completed via PR #20 and main-bound Actions run 29719477768: actual +71/cumulative1478, exact source-free artifact/checksums and GitHub attestation PASS",
-      "TASK-0020 completed artifact-only manual canary and rollback: zero product SLOC, private namespace, exact live evidence and rollback; the final operator run's raw Q20-11 failure was accepted as a qa_plan_defect caused solely by unrelated /run directory inode-size churn, with exact outer rollback and clean post-run probes"
+      "TASK-0020 completed artifact-only manual canary and rollback: zero product SLOC, private namespace, exact live evidence and rollback; the final operator run's raw Q20-11 failure was accepted as a qa_plan_defect caused solely by unrelated /run directory inode-size churn, with exact outer rollback and clean post-run probes",
+      "TASK-0021 added as the user-required production installation goal: transactional installer, rollback/uninstall, dedicated-identity full sudo gated by the live TOTP lease, enrollment, and complete administrator/user manuals; installer-family implementation is explicitly outside the production SLOC budget and DEV remains blocked until platform, recovery, fixture, trust, and scope plans pass independent review"
     ],
-    "later_reserve_rule": "TASK-0018 stopped without a candidate after its readable draft measured +102. TASK-0019 completed after ordered shedding item3 at +71/cumulative1478, with main-bound artifact and provenance verification PASS. The manual canary/rollback reserve is converted exclusively to TASK-0020 as a zero-product-SLOC safety-contract and live operational-evidence Task. TASK-0010/0011 remain deferred-v2."
+    "later_reserve_rule": "TASK-0018 stopped without a candidate after its readable draft measured +102. TASK-0019 and TASK-0020 completed artifact, provenance, manual canary, and rollback evidence at cumulative1478. User-required production installation remains open as TASK-0021; its installer-family sources are owner-excluded from the production SLOC budget but remain subject to explicit measurement, readability, scope, and no-compression review. TASK-0010/0011 remain deferred-v2."
   },
   "tasks": [
     {
@@ -443,6 +445,31 @@
       "split_stop_rule": "Do not start the live fixture unless artifact identity, noninteractive namespace elevation, exact host pre-state capture, cleanup commands, and rollback comparison are ready. Any product behavior defect stops this Task and requires a separately approved product Task; never patch the artifact or weaken a negative case in place.",
       "completion_evidence": "CANARY_RESULT and independent EVIDENCE_REVIEW Q20-12 PASS; 2026-07-21 owner-run manual E2E functional cases Q20-01 through Q20-10 PASS; raw Q20-11 FAIL classified qa_plan_defect because the only host diff was unrelated /run root inode size 940 to 920 while fixture-owned paths were unchanged; outer setup/cleanup digest a8258a8c1b1d68fd299287288e2a3c047c32aaec39e3626b5d05bf58ebfa0bcd matched and post-cleanup probes passed; owner accepted overall PASS and waived a corrected-script rerun; independent final v1 requirement audit PASS with no unresolved implementation, requirement, or evidence gap; zero product SLOC, cumulative 1478.",
       "contract_path": "tasks/TASK-0020/TASK.md"
+    },
+    {
+      "id": "TASK-0021",
+      "title": "production installer, rollback, and installation manuals",
+      "status": "planned",
+      "executable": false,
+      "work_classification": "safety_contract_and_product_delivery",
+      "depends_on": ["TASK-0020"],
+      "baseline_production_sloc": 1478,
+      "expected_production_sloc": null,
+      "expected_cumulative_production_sloc": 1478,
+      "target_cumulative_cap": 1500,
+      "hard_cumulative_guard": 1800,
+      "production_paths": [],
+      "test_paths": [],
+      "evidence_paths": ["tasks/TASK-0021/TASK.md", "backlog.json"],
+      "goal": "Deliver a supported, transactional production installation path that verifies the official artifact, provisions the tool-neutral dedicated OS identity coding-agent and TOTP enrollment, integrates PAM with dedicated-identity full sudo gated by a fresh live lease on every invocation, installs and starts the broker, validates live behavior, and provides deterministic rollback, uninstall, administrator documentation, and an end-user manual.",
+      "activation_requirements": ["select and document an explicitly supported OS/version and PAM/sudo model", "use coding-agent as the canonical production OS user and group name; keep product- or vendor-named identities confined to disposable fixtures", "design a PAM integration that never blindly replaces the host sudo stack and preserves an independently tested root recovery path", "define an explicit full-sudo grant for coding-agent only, with every invocation routed through the Codex Authority PAM service and timestamp caching disabled; never claim the lease contains root effects after acquisition", "define secret-safe enrollment, rotation, and root-owned seed creation without argv/environment/log disclosure", "define the installer and verifier trust chain: pinned distribution, checksum/provenance verification before elevation, root-owned non-writable staged copy, fixed path and argv, and one explicit minimal privilege transition", "freeze installer, verifier, rollback, uninstall, ownership, and durable recovery-state paths plus a disposable reboot-capable destructive-test fixture", "separate controlled error/signal automatic rollback from journaled recovery after SIGKILL, power loss, kernel failure, or reboot", "measure installer-family SLOC for visibility and readability without applying the 1500/1800 production budget; preserve no-compression review and keep every existing runtime change inside the budget", "approve TASK, PLAN, TASK-first QA_PLAN, and independent plan review"],
+      "completion_requires": ["idempotent fail-closed install and verify flow for the supported platform", "automatic rollback for every injected controlled error and catchable signal plus deterministic resume, rollback, or uninstall after every tested abrupt interruption and reboot point", "independently runnable uninstall that restores captured shared-file pre-state, preserves compatible pre-existing identities, and leaves no installer-owned process, socket, identity, policy, seed, binary, unit, timestamp, temporary file, secret-bearing log, or recovery state", "real disposable-host E2E covering clean enrollment, install, compatible identity reuse, UID/GID/name collision rejection, dedicated-identity full sudo for arbitrary root commands only during a fresh live authorization check, two uncached sudo calls, expiry, secret rotation with old secret/code rejection and old lease invalidation, broker stop/restart, controlled failed-install rollback, abrupt interruption and reboot recovery at every declared crash point, reinstall, and uninstall", "artifact and installer provenance/checksum verification before privileged execution or writes", "shared system journal and security audit remain unmodified and follow site retention policy while installer-owned temporary and secret-bearing logs are removed", "administrator installation/recovery/uninstall manual and updated end-user manual that explicitly state root-acquired persistence can outlive the lease", "independent REVIEW and QA PASS with secret-free evidence"],
+      "fixture_elevation_needs": "Disposable supported-platform VM or equivalent isolated host with snapshot/restore and scripted reboot/power-loss testing, console or other out-of-band root recovery, real systemd/PAM/sudo, network only for pinned artifact/provenance retrieval, and authority to create/remove the dedicated identity and exact declared files. Never develop or first-run the installer against a workstation or irreplaceable host.",
+      "sloc_budget_exception": "Installer, verifier, rollback, recovery, enrollment, rotation, and uninstall implementation is measured but excluded from the 1500 target and 1800 hard production SLOC budget by explicit owner decision. Existing runtime/product changes remain budgeted.",
+      "exclusions": ["blind replacement of /etc/pam.d/sudo", "production OS user or group names tied to Codex, a specific coding tool, or a vendor", "sudo grant for any identity other than coding-agent", "global sudo defaults that affect other users", "NOPASSWD or any route that bypasses the live PAM lease check", "claiming that lease expiry reverses or contains effects produced after root acquisition", "secret in argv, environment, shell history, logs, evidence, or repository", "manual-only steps presented as a complete installer", "silent mutation without captured pre-state and rollback", "GitHub push authority", "multi-distribution support before one platform is fully accepted"],
+      "blocked_reason": "The repository has no trusted production installer distribution path, supported-host dedicated-identity full-sudo PAM contract, enrollment/rotation tool, crash-recovery model, identity-lifecycle proof, or production uninstall proof. Scope and installer trust boundaries must be planned before executable work.",
+      "split_stop_rule": "Do not enable DEV or mutate a live host until every activation requirement is approved. Stop and split if dedicated-only full sudo cannot be routed exclusively through a fresh live PAM lease check with timestamp caching disabled, or if out-of-band recovery, exact rollback, secret-safe enrollment, or crash recovery cannot be proven. Never weaken fail-closed behavior, hide installer size, compress code to meet a non-applicable budget, or move existing runtime changes outside the production SLOC guard.",
+      "contract_path": "tasks/TASK-0021/TASK.md"
     }
   ],
   "future_milestones": [],
@@ -475,22 +502,22 @@
     "unique_event_ids": "test -z \"$(jq -r '.event_id' /home/ubuntu/git/agent-harness-work/lap30/events.jsonl | sort | uniq -d)\""
   },
   "delivery_guardrails": {
-    "production_sloc_counting": "Count nonblank, non-comment executable-source lines only within the production-LOC definition; TASK-0006 delta must remain exactly 0 and cumulative baseline exactly 751.",
+    "production_sloc_counting": "Count nonblank, non-comment executable-source lines within the production-LOC definition. For TASK-0021, measure and report installer, verifier, rollback, recovery, enrollment, rotation, and uninstall sources separately for readability but exclude them from the 1500/1800 budget; changes to existing runtime remain budgeted. TASK-0006 delta must remain exactly 0 and cumulative baseline exactly 751.",
     "no_compression": "LOC caps never authorize semicolon or one-line packing, collapsed error handling, cryptic names, removal of security comments, test deletion, or combining functions solely to reduce LOC. REVIEW rejects these patterns; gofmt and idiomatic structure remain mandatory.",
     "projected_cap_trigger": "The original 90% trigger forces explicit split/re-estimation and PLAN/QA_PLAN approval. After it fires, the approved per-Task absolute stop in projected_cap_trigger_sloc applies with explicit forecast headroom; target 1500 and hard 1800 are unchanged.",
     "candidate_cap_trigger": "Candidate above target cap stops even below hard; crossing or forecasting above hard stops safely. Shed only in the exact listed order after approved replan.",
-    "global_target_and_hard": "1500 is the mandatory-v1 planning target; overflow requires replan and shedding audit. 1800 is an unconditional production-SLOC hard limit and cannot be raised.",
-    "mandatory_controls": ["readiness", "TOTP replay/rate/absolute expiry", "SO_PEERCRED fail-closed IPC", "daemon lifecycle and bounded seed", "per-sudo live check/no cache", "secret non-disclosure", "dedicated socket ownership and PAM peer identity handoff", "minimal external-trace audit", "source-free attested artifact", "manual canary/rollback evidence"],
+    "global_target_and_hard": "1500 is the mandatory-v1 planning target and 1800 the hard limit for budgeted production runtime. TASK-0021 installer-family sources are an explicit owner-approved exception: measure and review them without charging either cap. This exception does not cover changes to the existing broker, CLI, PAM helper, IPC, lease, or audit runtime.",
+    "mandatory_controls": ["readiness", "TOTP replay/rate/absolute expiry", "SO_PEERCRED fail-closed IPC", "daemon lifecycle and bounded seed", "per-sudo live check/no cache", "secret non-disclosure", "dedicated socket ownership and PAM peer identity handoff", "minimal external-trace audit", "source-free attested artifact", "manual canary/rollback evidence", "production installation/rollback and administrator/user manuals"],
     "ordered_feature_shedding": [
       "automated canary executable; retain manual runbook/evidence",
       "rich status/JSON UX; retain activate and immediate revoke",
       "rich audit schema/correlation; retain correlation ID, actor, scope, result, and expiry",
       "precomputed pack-size/history diagnostics; retain exact repo/ref/clean-tree validation and normal non-force rejection",
       "remote-OID prefetch/race diagnostics; retain standard non-force rejection and generic failure",
-      "automated installer/rollback executable; retain declarative units and manual verified install/rollback",
+      "multi-distribution installer support; retain one explicitly supported platform with transactional install, rollback, and uninstall",
       "move GitHub push to v2, leaving TOTP full-sudo authority as v1"
     ],
-    "later_reserve": "TASK-0009 measured 1253 actual and TASK-0017 is independently remeasured at +145/projected 1398, leaving projected 102 to target 1500 and 402 to hard 1800; actual post-TASK-0017 measurement remains required. The user-confirmed v1 push drop keeps former TASK-0010/TASK-0011 forecasts (+130/+153) in non-executable v2 reserve with zero v1 SLOC. TASK-0012 follows TASK-0017 as the frozen post-TASK-0017 actual zero-SLOC gate, then TASK-0012 PASS+merge -> MILESTONE-audit-attestation -> MILESTONE-manual-canary-rollback; no hard-limit borrowing, compression, or silent reserve use."
+    "later_reserve": "TASK-0019 and TASK-0020 completed the source-free attested artifact and manual canary/rollback at actual cumulative production SLOC 1478. User-required TASK-0021 now owns the remaining production installation, rollback/uninstall, and manuals goal and stays executable:false until its supported-platform and safety scope pass approval. Its installer-family size is measured but budget-excluded; existing runtime changes remain budgeted. The user-confirmed v1 push drop keeps TASK-0010/TASK-0011 in non-executable v2 reserve with zero v1 SLOC; no compression or silent reserve use."
   },
   "acceptance_checks": [
     "The user-approved Disposition 2 atomically updates backlog, terminates TASK-0007, creates TASK-0013/TASK-0014, and propagates TASK-0008 through TASK-0009; this amendment adds planned TASK-0017 as the v1 blocker and places TASK-0012 after its frozen actual measurement without enabling push implementation.",
@@ -499,7 +526,8 @@
     "TASK-0006 production SLOC delta is exactly 0 and cumulative measured baseline remains exactly 751.",
     "TASK-0009 and TASK-0012 apply the deterministic same-task/same-lap/earlier-file/smaller-sequence correction predicate before effective values.",
     "Every independent REVIEW and QA runs the focused checks plus GOCACHE=\"$(mktemp -d)\" go test ./..., gofmt, git diff --check, and jq JSON validation as applicable.",
-    "TASK-0017's approved +145 / projected 1398 remeasurement is not an implementation or E2E result; zero further production allowance, target/hard reserves (1500/1800), mandatory controls, exact shedding order, and no-compression rules remain binding."
+    "TASK-0017's approved +145 / projected 1398 remeasurement is not an implementation or E2E result; zero further production allowance, target/hard reserves (1500/1800), mandatory controls, exact shedding order, and no-compression rules remain binding.",
+    "TASK-0021 remains planned and executable:false until its supported platform, coding-agent-only full-sudo PAM integration with uncached live checks, secret-safe enrollment, destructive fixture, rollback/uninstall design, and installer-family measurement plan pass independent approval; installer-family sources are outside the 1500/1800 budget while existing runtime changes remain inside it."
   ],
   "human_gate_evidence": {
     "review_checklist": "Record independent contract/index comparison, fixture and focused/full checks, correction predicate, production-SLOC count, caps/reserves, and no-compression/guardrail compliance.",
@@ -522,6 +550,7 @@
     "v1_push_drop_deferred_v2_reserve": "TASK-0010/TASK-0011",
     "final_measurement_and_later_reserve_gate": "TASK-0012",
     "minimal_audit_and_source_free_attestation": "TASK-0019",
-    "manual_canary_and_rollback_evidence": "TASK-0020"
+    "manual_canary_and_rollback_evidence": "TASK-0020",
+    "production_installation_rollback_and_manuals": "TASK-0021"
   }
 }
