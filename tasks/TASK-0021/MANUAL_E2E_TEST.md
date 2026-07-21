@@ -61,7 +61,17 @@ sudo /var/tmp/TASK-0021-E2E_RUNBOOK.sh post-install
 ```bash
 sudo -u coding-agent -H /bin/bash
 /usr/local/bin/codex-authority ready
-# 認証アプリの現在のTOTPを入力
+activate_codex_authority() {
+  local code rc
+  IFS= read -r -s -p 'TOTP: ' code
+  printf '\n'
+  builtin printf '%s\n' "$code" | /usr/local/bin/codex-authority otp
+  rc=$?
+  unset code
+  return "$rc"
+}
+activate_codex_authority
+unset -f activate_codex_authority
 /var/tmp/TASK-0021-E2E_RUNBOOK.sh sudo-allow
 ```
 
