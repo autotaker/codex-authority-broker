@@ -28,6 +28,7 @@ sudo install -o root -g root -m 0555 \
   tasks/TASK-0021/E2E_RUNBOOK.sh /var/tmp/TASK-0021-E2E_RUNBOOK.sh
 sudo cmp tasks/TASK-0021/E2E_RUNBOOK.sh /var/tmp/TASK-0021-E2E_RUNBOOK.sh
 sudo /var/tmp/TASK-0021-E2E_RUNBOOK.sh preflight
+sudo /var/tmp/TASK-0021-E2E_RUNBOOK.sh host-state-before
 
 sudo install -d -o root -g root -m 0700 /var/tmp/task0021-candidate-root
 sudo install -o root -g root -m 0600 \
