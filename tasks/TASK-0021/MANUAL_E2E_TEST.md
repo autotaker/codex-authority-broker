@@ -4,13 +4,65 @@
 Ubuntu 24.04 LTS amd64 VM専用です。workstationや代替不能hostでは実行しません。
 
 runbook内のcandidate tree/archive digestが固定されたcommitをcheckoutし、runbookをroot-owned
-mode 0500でVMへ配置してsourceとbyte比較します。返却する証跡は
+mode 0555でVMへ配置してsourceとbyte比較します。`coding-agent`自身がuser-side test modeを実行する
+ためread/executeは全員に許可しますが、書き込みはrootだけに限定します。返却する証跡は
 `Q21-NN result=... count=... digest=...`だけです。QR、seed、TOTP、raw journal、shadow、環境、
 credential、VM endpointは返却しません。
 
 checkout直後に通常ユーザーで`tasks/TASK-0021/BUILD_CANDIDATE.sh`を実行します。固定digestと一致した
 archiveだけが`/tmp/task0021-candidate/codex-authority-linux-amd64.tar.gz`へ生成されます。既存の
 `/tmp/task0021-candidate`がある場合は、snapshotを戻してから再開します。
+
+## 候補の準備とインストール
+
+VM上でブランチをcheckoutした通常ユーザーから、次を実行します。Goは`go1.23.12 linux/amd64`を
+使用してください。
+
+```bash
+cd ~/git/codex-authority-broker
+git status --short
+go version
+tasks/TASK-0021/BUILD_CANDIDATE.sh
+
+sudo install -o root -g root -m 0555 \
+  tasks/TASK-0021/E2E_RUNBOOK.sh /var/tmp/TASK-0021-E2E_RUNBOOK.sh
+sudo cmp tasks/TASK-0021/E2E_RUNBOOK.sh /var/tmp/TASK-0021-E2E_RUNBOOK.sh
+sudo /var/tmp/TASK-0021-E2E_RUNBOOK.sh preflight
+
+sudo install -d -o root -g root -m 0700 /var/tmp/task0021-candidate-root
+sudo install -o root -g root -m 0600 \
+  /tmp/task0021-candidate/codex-authority-linux-amd64.tar.gz \
+  /var/tmp/task0021-candidate-root/codex-authority-linux-amd64.tar.gz
+sudo /var/tmp/TASK-0021-E2E_RUNBOOK.sh verify-archive \
+  /var/tmp/task0021-candidate-root/codex-authority-linux-amd64.tar.gz
+
+sudo install -d -o root -g root -m 0700 /var/tmp/task0021-candidate-root/payload
+sudo tar --extract --gzip \
+  --file /var/tmp/task0021-candidate-root/codex-authority-linux-amd64.tar.gz \
+  --directory /var/tmp/task0021-candidate-root/payload \
+  --no-same-owner --no-same-permissions
+sudo env -i PATH=/usr/sbin:/usr/bin:/sbin:/bin \
+  python3 -I -B \
+  /var/tmp/task0021-candidate-root/payload/install/codex-authority-install
+```
+
+installerが表示するQRを管理者の認証アプリへ登録し、同じ端末で`ENROLLED`を入力します。QR、seed、
+TOTPは記録・転送しません。install完了後はroot-owned stagingを削除できます。
+
+```bash
+sudo rm -rf -- /var/tmp/task0021-candidate-root
+sudo /var/tmp/TASK-0021-E2E_RUNBOOK.sh post-install
+```
+
+以降、root-side modeはroot consoleまたは通常ユーザーからの`sudo`で実行します。user-side modeは
+次のように`coding-agent` shellへ入り、そのshell内で実行します。
+
+```bash
+sudo -u coding-agent -H /bin/bash
+/usr/local/bin/codex-authority ready
+# 認証アプリの現在のTOTPを入力
+/var/tmp/TASK-0021-E2E_RUNBOOK.sh sudo-allow
+```
 
 ## 基本sequence
 
