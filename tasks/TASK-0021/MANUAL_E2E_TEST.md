@@ -56,9 +56,11 @@ sudo /var/tmp/TASK-0021-E2E_RUNBOOK.sh post-install
 ```
 
 以降、root-side modeはroot consoleまたは通常ユーザーからの`sudo`で実行します。user-side modeは
-次のように`coding-agent` shellへ入り、そのshell内で実行します。
+次のように`coding-agent` shellへ入り、そのshell内で実行します。先に`audit-count`出力の`count=N`を
+控え、最後の`N`へその値を指定してください。
 
 ```bash
+sudo /var/tmp/TASK-0021-E2E_RUNBOOK.sh audit-count
 sudo -u coding-agent -H /bin/bash
 /usr/local/bin/codex-authority ready
 activate_codex_authority() {
@@ -73,6 +75,8 @@ activate_codex_authority() {
 activate_codex_authority
 unset -f activate_codex_authority
 /var/tmp/TASK-0021-E2E_RUNBOOK.sh sudo-allow
+exit
+sudo /var/tmp/TASK-0021-E2E_RUNBOOK.sh audit-delta N
 ```
 
 ## 基本sequence
