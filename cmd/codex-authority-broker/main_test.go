@@ -48,6 +48,14 @@ var releaseManifest = []string{
 	"deploy/pam/codex-authority",
 	"deploy/sudo/codex-authority",
 	"deploy/systemd/codex-authority-broker.service",
+	"docs/ADMIN_MANUAL.md",
+	"docs/USER_MANUAL.md",
+	"install/codex-authority-admin",
+	"install/codex-authority-install",
+	"install/codex-authority-recover",
+	"install/codex-authority-uninstall",
+	"install/codex-authority-verify",
+	"install/codex_authority_installer.py",
 }
 
 func repositoryPath(parts ...string) string {
@@ -80,17 +88,17 @@ func validateReleaseWorkflow(text string) error {
 		return errors.New("workflow permissions or secret boundary changed")
 	}
 	for _, required := range []string{
-		"CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -o staging/bin/codex-authority-broker ./cmd/codex-authority-broker",
-		"CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -o staging/bin/codex-authority ./cmd/codex-authority",
-		"CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -o staging/bin/codex-authority-sudo ./cmd/codex-authority-sudo",
-		"subject-path: codex-authority-linux-amd64.tar.gz",
+		"CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -buildvcs=false -trimpath -o staging/bin/codex-authority-broker ./cmd/codex-authority-broker",
+		"CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -buildvcs=false -trimpath -o staging/bin/codex-authority ./cmd/codex-authority",
+		"CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -buildvcs=false -trimpath -o staging/bin/codex-authority-sudo ./cmd/codex-authority-sudo",
+		"subject-path: |\n            codex-authority-linux-amd64.tar.gz\n            codex-authority-bootstrap",
 		"if-no-files-found: error",
 		"sha256sum -c SHA256SUMS",
 		"cache: false",
 		"workflow_dispatch:",
 		"branches: [main]",
-		"tar --sort=name --format=gnu --mtime=\"@${SOURCE_DATE_EPOCH}\" --owner=0 --group=0 --numeric-owner -cf - -C staging SHA256SUMS bin/codex-authority bin/codex-authority-broker bin/codex-authority-sudo deploy/pam/codex-authority deploy/sudo/codex-authority deploy/systemd/codex-authority-broker.service | gzip -n > \"$ARCHIVE\"",
-		"path: |\n            codex-authority-linux-amd64.tar.gz\n            SHA256SUMS",
+		"tar --sort=name --format=gnu --mtime=\"@${SOURCE_DATE_EPOCH}\" --owner=0 --group=0 --numeric-owner -cf - -C staging SHA256SUMS bin/codex-authority bin/codex-authority-broker bin/codex-authority-sudo deploy/pam/codex-authority deploy/sudo/codex-authority deploy/systemd/codex-authority-broker.service install/codex-authority-install install/codex-authority-verify install/codex-authority-admin install/codex-authority-recover install/codex-authority-uninstall install/codex_authority_installer.py docs/ADMIN_MANUAL.md docs/USER_MANUAL.md | gzip -n > \"$ARCHIVE\"",
+		"path: |\n            codex-authority-linux-amd64.tar.gz\n            codex-authority-bootstrap\n            SHA256SUMS",
 	} {
 		if strings.Count(text, required) != 1 {
 			return fmt.Errorf("workflow requirement missing or duplicated: %s", required)
@@ -118,7 +126,7 @@ func TestReleaseWorkflowPinsPermissionsAndPayload(t *testing.T) {
 		"permission":  strings.Replace(text, "contents: read", "contents: write", 1),
 		"build":       strings.Replace(text, "./cmd/codex-authority-sudo", "./cmd/codex-authority", 1),
 		"payload":     strings.Replace(text, "-C staging SHA256SUMS", "-C staging source.go SHA256SUMS", 1),
-		"attestation": strings.Replace(text, "subject-path: codex-authority-linux-amd64.tar.gz", "subject-path: SHA256SUMS", 1),
+		"attestation": strings.Replace(text, "            codex-authority-bootstrap", "            SHA256SUMS", 1),
 	}
 	for name, mutated := range mutations {
 		t.Run(name, func(t *testing.T) {
@@ -171,7 +179,7 @@ func copyReleaseInputs(t *testing.T, destination string) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, name := range []string{"cmd", "internal", "deploy"} {
+	for _, name := range []string{"cmd", "internal", "deploy", "install", "docs"} {
 		if err := os.CopyFS(filepath.Join(destination, name), os.DirFS(filepath.Join(root, name))); err != nil {
 			t.Fatal(err)
 		}
@@ -222,7 +230,7 @@ func runReleaseWorkflow(t *testing.T, script, cache string) ([]byte, int64) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	return archive, 1_700_000_000
+	return archive, 0
 }
 
 func validateReleaseArchive(archive []byte, epoch int64) error {

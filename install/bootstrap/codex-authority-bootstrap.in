@@ -1,0 +1,49 @@
+#!/bin/bash
+set -euo pipefail
+export LC_ALL=C PATH=/usr/sbin:/usr/bin:/sbin:/bin HOME=/root
+umask 077
+
+SOURCE_COMMIT=__SOURCE_COMMIT__
+ARCHIVE_SHA256=__ARCHIVE_SHA256__
+REPOSITORY=autotaker/codex-authority-broker
+WORKFLOW=autotaker/codex-authority-broker/.github/workflows/release.yml
+ROOT=/var/tmp/codex-authority-install
+ARCHIVE=$ROOT/archive.tar.gz
+BOOTSTRAP=$ROOT/codex-authority-bootstrap
+STAGING=$ROOT/staging
+
+[[ $(id -u) -eq 0 && $# -eq 0 ]]
+[[ $SOURCE_COMMIT =~ ^[0-9a-f]{40}$ && $ARCHIVE_SHA256 =~ ^[0-9a-f]{64}$ ]]
+for path in "$ROOT" "$ARCHIVE" "$BOOTSTRAP"; do [[ ! -L $path ]]; done
+[[ $(stat -c %u:%g:%a "$ROOT") == 0:0:700 ]]
+[[ $(stat -c %u:%g:%a "$ARCHIVE") == 0:0:600 ]]
+[[ $(stat -c %u:%g:%a "$BOOTSTRAP") == 0:0:500 ]]
+[[ $(sha256sum "$ARCHIVE" | awk '{print $1}') == "$ARCHIVE_SHA256" ]]
+
+expected=$(mktemp)
+actual=$(mktemp)
+cleanup() {
+  /usr/bin/rm -f "$expected" "$actual"
+  /usr/bin/rm -rf --one-file-system "$ROOT"
+}
+trap cleanup EXIT
+for subject in "$ARCHIVE" "$BOOTSTRAP"; do
+  /usr/bin/gh attestation verify "$subject" --repo "$REPOSITORY" \
+    --signer-workflow "$WORKFLOW" --source-ref refs/heads/main \
+    --source-digest "$SOURCE_COMMIT" --deny-self-hosted-runners >/dev/null
+done
+printf '%s\n' SHA256SUMS bin/codex-authority bin/codex-authority-broker \
+  bin/codex-authority-sudo deploy/pam/codex-authority deploy/sudo/codex-authority \
+  deploy/systemd/codex-authority-broker.service docs/ADMIN_MANUAL.md docs/USER_MANUAL.md \
+  install/codex-authority-admin install/codex-authority-install \
+  install/codex-authority-recover install/codex-authority-uninstall \
+  install/codex-authority-verify install/codex_authority_installer.py | sort >"$expected"
+/usr/bin/tar -tzf "$ARCHIVE" | sort >"$actual"
+/usr/bin/cmp "$expected" "$actual"
+if /usr/bin/tar -tvzf "$ARCHIVE" | /usr/bin/awk '$1 !~ /^-/{exit 1}'; then :; else exit 1; fi
+[[ ! -e $STAGING ]]
+/usr/bin/install -d -o root -g root -m 0700 "$STAGING"
+/usr/bin/tar -xzf "$ARCHIVE" -C "$STAGING" --no-same-owner --no-same-permissions
+(cd "$STAGING" && /usr/bin/sha256sum -c SHA256SUMS)
+/usr/bin/env -i PATH=/usr/sbin:/usr/bin:/sbin:/bin HOME=/root LANG=C \
+  /usr/bin/python3 -I -B "$STAGING/install/codex-authority-install"

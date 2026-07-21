@@ -1,1 +1,5 @@
-Defaults:codex-fixture timestamp_timeout=0
+Defaults:coding-agent pam_service=codex-authority
+Defaults:coding-agent pam_login_service=codex-authority
+Defaults:coding-agent pam_askpass_service=codex-authority
+Defaults:coding-agent timestamp_timeout=0
+coding-agent ALL=(root:root) PASSWD: ALL

@@ -1,0 +1,11 @@
+#!/usr/bin/python3
+import sys
+from pathlib import Path
+
+here = Path(__file__).resolve().parent
+sys.dont_write_bytecode = True
+sys.path.insert(0, str(here))
+sys.path.append("/usr/local/lib/codex-authority")
+from codex_authority_installer import cli
+
+raise SystemExit(cli("verify"))

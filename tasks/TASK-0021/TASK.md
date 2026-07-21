@@ -19,8 +19,8 @@
   "expected_cumulative_production_sloc": 1478,
   "target_cumulative_cap": 1500,
   "hard_cumulative_guard": 1800,
-  "production_paths": ["install/codex-authority-install", "install/codex-authority-verify", "install/codex-authority-admin", "install/codex-authority-recover", "install/codex-authority-uninstall", "install/codex_authority_installer.py", "deploy/pam/codex-authority", "deploy/sudo/codex-authority", "deploy/systemd/codex-authority-broker.service", ".github/workflows/release.yml"],
-  "test_paths": ["install/tests/test_installer.py", "cmd/codex-authority-broker/main_test.go", "tasks/TASK-0021/MANUAL_E2E_TEST.md", "tasks/TASK-0021/E2E_RUNBOOK.sh"],
+  "production_paths": ["install/codex-authority-install", "install/codex-authority-verify", "install/codex-authority-admin", "install/codex-authority-recover", "install/codex-authority-uninstall", "install/codex_authority_installer.py", "install/bootstrap/codex-authority-bootstrap.in", "deploy/pam/codex-authority", "deploy/sudo/codex-authority", "deploy/systemd/codex-authority-broker.service", ".github/workflows/release.yml", "docs/ADMIN_MANUAL.md", "docs/USER_MANUAL.md", "README.md"],
+  "test_paths": ["install/tests/test_installer.py", "cmd/codex-authority-broker/main_test.go", "tasks/TASK-0021/BUILD_CANDIDATE.sh", "tasks/TASK-0021/MANUAL_E2E_TEST.md", "tasks/TASK-0021/E2E_RUNBOOK.sh"],
   "evidence_paths": ["tasks/TASK-0021/TASK.md", "tasks/TASK-0021/PLAN.md", "tasks/TASK-0021/QA_PLAN.md", "tasks/TASK-0021/PLAN_REVIEW.md", "backlog.json"],
   "goal": "Deliver a supported, transactional production installation path that verifies the official artifact, provisions the tool-neutral dedicated OS identity coding-agent and TOTP enrollment, integrates PAM with dedicated-identity full sudo gated by a fresh live lease on every invocation, installs and starts the broker, validates live behavior, and provides deterministic rollback, uninstall, administrator documentation, and an end-user manual.",
   "activation_requirements": ["select and document an explicitly supported OS/version and PAM/sudo model", "use coding-agent as the canonical production OS user and group name; keep product- or vendor-named identities confined to disposable fixtures", "design a PAM integration that never blindly replaces the host sudo stack and preserves an independently tested root recovery path", "define an explicit root full-sudo grant for coding-agent only, with normal, login, askpass, shell, and runas forms all routed through the Codex Authority PAM service and timestamp caching disabled; never claim the lease contains root effects after acquisition", "define secret-safe enrollment, rotation, and root-owned seed creation without argv/environment/log disclosure", "define the installer and verifier trust chain: pinned distribution, checksum/provenance verification before elevation, a copy-only fixed privileged step into root-owned non-writable staging, then a separate fixed root re-attest/extract/hash/execute step with fixed paths, argv, and environment", "freeze installer, verifier, rollback, uninstall, ownership, and durable recovery-state paths plus a disposable reboot-capable destructive-test fixture", "separate controlled error/signal automatic rollback from journaled recovery after SIGKILL, power loss, kernel failure, or reboot", "measure installer-family SLOC for visibility and readability without applying the 1500/1800 production budget; preserve no-compression review and keep every existing runtime change inside the budget", "approve TASK, PLAN, TASK-first QA_PLAN, and independent plan review"],
@@ -74,8 +74,14 @@
 - 実systemd/PAM/sudo hostで、TOTP activation、独立した2回のno-cache sudo、自然期限切れ、broker停止、fresh restart denialを確認する。
 - lease中に`coding-agent`が任意のroot commandを実行でき、leaseなし・期限切れ・broker停止時には新しいsudo呼び出しを拒否することを確認する。root取得後に作成したservice、cron、setuid file、鍵、policy変更等はlease期限後も残り得るため、leaseをsandboxや自動rollbackとして扱わない。
 - uninstall後、installerが所有したprocess、socket、identity、policy、seed、binary、unit、timestamp、temporary file、secret-bearing log、recovery stateが残らず、共有ファイルはcaptured pre-stateへ復元される。shared system journalとsecurity auditはsite retention policyに従って保持し、installerは改変しない。
-- 管理者とユーザーが秘密を表示・保存せずに導入・利用・復旧できる文書が完成する。
+- 管理者とユーザーがraw seed/TOTPを表示・保存せず、enrollment QRを制御terminalだけで一度扱って導入・利用・復旧できる文書が完成する。
 - 独立REVIEWとQAが、実装、fixture、rollback、秘密境界、文書を同一candidateでPASSする。
+
+## DEV measurement
+
+installer-familyは、実装候補で物理1797行、空行と先頭`#` commentを除く可視性測定1646行。
+明示合意どおり1500/1800 production budgetの対象外だが、reviewから隠さず全体を同一candidateで扱う。
+既存runtimeのproduction SLOCは1478のままである。
 
 ## 禁止事項
 
